@@ -1,6 +1,8 @@
 #! /bin/bash
 
 # Set Variables/Arrays
+#SPIN_ARR=(◐ ◓ ◑ ◒)
+#SPIN_ARR=(◴ ◷ ◶ ◵)
 SPIN_ARR=(○ ◎ ◉ ● ◉ ◎)
 SPIN_CYCLE="0"
 
