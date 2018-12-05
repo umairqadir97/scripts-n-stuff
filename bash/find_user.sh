@@ -25,13 +25,14 @@ done
 
 # Set up variables
 get_info() {
-LDAP_SERVER_TMP="us01sv-dc03.corp.qualys.com"
 echo -en "\e[0;33m"
 read -p $'\e[0;33mEnter your AD Username: \e[0m' ADUSER
+read -p $'\e[0;33mEnter your AD Domain (domain.com): \e[0m' AD_DOMAIN
 read -s -p $'\e[0;33mEnter your AD Password: \e[0m' ADPASS
 echo -e \n
-read -p $'\e[0;33mEnter LDAP Server: '"[${LDAP_SERVER_TMP}]"$' \e[0m' LDAP_SERVER
-if [ "${LDAP_SERVER}" == "" ]; then LDAP_SERVER="10.100.1.23"; fi
+read -p $'\e[0;33mEnter LDAP Server: \e[0m' LDAP_SERVER
+AD_DC_ARR=($(echo "${AD_DOMAIN}" | sed 's/\./ /g'))
+AD_DC="$(for ELEMENT in "${AD_DC_ARR[@]}"; do echo -en "dc=${ELEMENT},"; done | sed 's/.$//')"
 check_password
 }
 
@@ -39,7 +40,7 @@ run_firstlast() {
 read -p $'\e[0;33mFirst and Last Name: \e[0m' FLNAME
 echo ""
 echo -en "\e[30;37m"
-if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@corp.qualys.com" -w ${ADPASS} -b "dc=corp,dc=qualys,dc=com" "(&(objectCategory=person)(objectClass=user)(cn=${FLNAME}))" sAMAccountName mail department co description title telephoneNumber memberof 2>/dev/null | grep -i 'sAMAccountName\|mail\|department\|co\:\|description\|title\|telephoneNumber\|memberof' | cut -d ',' -f 1 | sed "s/CN=//";
+if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@${AD_DOMAIN}" -w ${ADPASS} -b "${AD_DC}" "(&(objectCategory=person)(objectClass=user)(cn=${FLNAME}))" sAMAccountName mail department co description title telephoneNumber memberof 2>/dev/null | grep -i 'sAMAccountName\|mail\|department\|co\:\|description\|title\|telephoneNumber\|memberof' | cut -d ',' -f 1 | sed "s/CN=//";
 then
 	echo -e "\e[0m"
 else
@@ -51,7 +52,7 @@ run_byusername() {
 read -p $'\e[0;33mEnter Username: \e[0m' USERNM
 echo ""
 echo -en "\e[30;37m"
-if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@corp.qualys.com" -w ${ADPASS} -b "dc=corp,dc=qualys,dc=com" "(&(objectCategory=person)(objectClass=user)(sAMAccountName=${USERNM}))" displayname mail department co description title telephoneNumber memberof 2>/dev/null | grep -i 'displayname\|mail\|department\|co\:\|description\|title\|telephoneNumber\|memberof' | cut -d ',' -f 1 | sed "s/CN=//";
+if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@${AD_DOMAIN}" -w ${ADPASS} -b "${AD_DC}" "(&(objectCategory=person)(objectClass=user)(sAMAccountName=${USERNM}))" displayname mail department co description title telephoneNumber memberof 2>/dev/null | grep -i 'displayname\|mail\|department\|co\:\|description\|title\|telephoneNumber\|memberof' | cut -d ',' -f 1 | sed "s/CN=//";
 then
         echo -e "\e[0m"
 else
@@ -63,8 +64,8 @@ run_groupmembers() {
 read -p $'\e[0;33mEnter Group: \e[0m' GROUPNM
 echo ""
 echo -en "\e[30;37m"
-GROUPDN=`ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@corp.qualys.com" -w ${ADPASS} -b "dc=corp,dc=qualys,dc=com" "(&(objectCategory=group)(cn=${GROUPNM}))" dn | grep dn | awk '{print $2}'`
-if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@corp.qualys.com" -w ${ADPASS} -b "dc=corp,dc=qualys,dc=com" "(&(objectCategory=user)(memberOf=${GROUPDN}))" displayName 2>/dev/null | grep displayName | awk '{$1=""; print $0}';
+GROUPDN=`ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@${AD_DOMAIN}" -w ${ADPASS} -b "${AD_DC}" "(&(objectCategory=group)(cn=${GROUPNM}))" dn | grep dn | awk '{print $2}'`
+if ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@${AD_DOMAIN}" -w ${ADPASS} -b "${AD_DC}" "(&(objectCategory=user)(memberOf=${GROUPDN}))" displayName 2>/dev/null | grep displayName | awk '{$1=""; print $0}';
 then
         echo -e "\e[0m"
 else
@@ -114,7 +115,7 @@ fi
 }
 
 check_password() {
-if [[ ! $(ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@corp.qualys.com" -w ${ADPASS} -b "dc=corp,dc=qualys,dc=com" "(&(objectCategory=person)(objectClass=user)(cn=${FLNAME}))" 2> /dev/null) ]]; then
+if [[ ! $(ldapsearch -LLL -x -h "${LDAP_SERVER}" -D "${ADUSER}@${AD_DOMAIN}" -w ${ADPASS} -b "${AD_DC}" "(&(objectCategory=person)(objectClass=user)(cn=${FLNAME}))" 2> /dev/null) ]]; then
   echo -e "\e[41;30mBad Password!\e[0;33m"
   read -p $'Try Again? [y]: \e[0m' YORN
   if [ "${YORN}" = Y -o "${YORN}" = y ]; then
