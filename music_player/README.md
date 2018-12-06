@@ -62,8 +62,8 @@ gradient=true
 Now update the following line in the config file to match below:
 colors.scheme=retro,matrix,laser,rgb,rainbow,basic_colors
 
-# Enjoy free music! Well, free to you, anyway.
-cp -R 'Trevor Something - Trevor Something Does Not Exist' ${HOME}/Music/
+# Enjoy free music!
+https://trevorsomething.bandcamp.com/album/trevor-something-does-not-exist
 then in cmus main window (press 1), do:
 :add Music
 (Music = whatever directory your music is stored in- if this is not ${HOME}/Music, please update the variables in both scripts.)
