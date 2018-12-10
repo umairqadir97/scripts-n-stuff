@@ -1,10 +1,8 @@
 Readme file for the music player I use - Lucas Rountree
 
+####################  
+\# OLD SCHOOL TITLE \#  
 ####################
-
-\# OLD SCHOOL TITLE \#
-
-####################/n
 
 Set up steps (note, this was all done on Ubuntu 17.10 - please adjust for your Linux flavor).
 
