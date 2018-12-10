@@ -34,7 +34,7 @@ vim .bashrc -> alias play='exec bash bin/music_player.sh'
 Now just open a terminal window and run your alias to start the player  
 
 ### customize the visualizer!  
-*Read more here: https://github.com/dpayne/cli-visualizer#cli-visualizer*  
+#### Read more here: https://github.com/dpayne/cli-visualizer#cli-visualizer  
 config file is: .config/vis/config  
 colors directory is: .config/vis/colors  
 check the "./vis/" directory for color scheme files.  
