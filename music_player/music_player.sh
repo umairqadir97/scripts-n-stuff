@@ -24,9 +24,14 @@ for PACKAGE in ${DEP_LIST[@]}; do
     exit
   fi
 done
-if [ ! "$(dpkg-query -s gnome-terminal | grep "Status: install ok installed")" -o ! "$(dpkg-query -s urxvt | grep "Status: install ok installed")" ]; then
-  echo -e "\e[91mgnome-terminal/urxvt NOT found!
-Please install a terminal and configure music-player to use it.
+if [ "$(tput colors)" != "256" ]; then
+  echo -e "\e[91mTerminal is not set to display 256 colors!
+quitting...\e[0m"
+  exit
+fi
+if ! [ "$(grep 'exec(' /etc/alternatives/x-terminal-emulator | grep "gnome-terminal\|urxvt")" ]; then
+  echo -e "\e[91mYou do not appear to be using gnome-terminal or urxvt.
+Please install, or reconfigure music-player to use your terminal emulator of choice.
 quitting...\e[0m"
   exit
 fi
