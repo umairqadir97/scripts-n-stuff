@@ -3,13 +3,33 @@
 # 2018, Lucas Rountree, lredvtree@gmail.com
 
 # This will open cmus, a visualizer, and an album art viewer.
-# Requires the following dependencies: ffmpeg cmus libfftw3-dev libncursesw5-dev libpulse-dev
+# Requires the following dependencies: ffmpeg cmus libfftw3-dev libncursesw5-dev libpulse-dev xorg(or x plugins for wayland)
 # Currently, only works with the following terminals: rxvt-unicode and gnome-terminal. Updated the if statement below to add lines for whatever terminal you want to use.
 # Also the cli-visualizer:
 # wget https://github.com/dpayne/cli-visualizer/archive/master.zip .
 # unzip master.zip
 # cd cli-visualizer-master
 # ./install.sh
+
+# Check dependencies
+echo "Checking dependencies..."
+DEP_LIST=(ffmpeg cmus libfftw3-dev libncursesw5-dev libpulse-dev xorg)
+for PACKAGE in ${DEP_LIST[@]}; do
+  if [ "$(dpkg-query -s "${PACKAGE}" | grep "Status: install ok installed")" ]; then
+    echo -e "\e[93m${PACKAGE} installed!\e[0m"
+  else
+    echo -e "\e[91m${PACKAGE} NOT installed, run:"
+    echo -e "apt-get install -f ${PACKAGE}"
+    echo -e "quitting...\e[0m"
+    exit
+  fi
+done
+if [ ! "$(dpkg-query -s gnome-terminal | grep "Status: install ok installed")" -o ! "$(dpkg-query -s urxvt | grep "Status: install ok installed")" ]; then
+  echo -e "\e[91mgnome-terminal/urxvt NOT found!
+Please install a terminal and configure music-player to use it.
+quitting...\e[0m"
+  exit
+fi
 
 # Set variables
 CMUS_Version="$(cmus --version | grep "cmus" | awk '{print $2}')"
