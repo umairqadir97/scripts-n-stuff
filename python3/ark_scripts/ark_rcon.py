@@ -106,7 +106,11 @@ class tcp:
                     Auth_Response = self.get_response()
                 if Auth_Response and Auth_Response[1] != 3: # Check authentication response
                     self.packet.close()
-                    return '[Auth_Response] ' + Auth_Response[3].decode('utf-8').rstrip('\\x00')
+                    Auth_Response_Body = Auth_Response[3].decode('utf-8').strip('\x00')
+                    if not Auth_Response_Body:
+                        return '[Auth_Response] Failed Authentication! Bad password?'
+                    else:
+                        return '[Auth_Response] ' + Auth_Response_Body
                 elif not Auth_Response:
                     return '[Auth_Response] Received 10 empty responses from server.'
         return True
@@ -131,7 +135,8 @@ class tcp:
             self.packet.close()
             return '[Send_Response] Received 10 empty responses from server.'
         self.packet.close() # Close connection
-        return '[Send_Response] ' + Send_Response[3].decode('utf-8').rstrip('\\x00') # Send server response, will contain response data or error data for processing later
+        Send_Response_Body = Send_Response[3].decode('utf-8').strip('\x00').strip(' \n')
+        return '[Send_Response] ', Send_Response_Body # Send server response, will contain response data or error data for processing later
 
 # Run as script
 if __name__ == '__main__':
@@ -146,6 +151,6 @@ if __name__ == '__main__':
     parser.add_argument('--version', action='version', version='%(prog)s 1.0', help='Get current version of ark_rcon.py')
     args = parser.parse_args()
 
-    rcon = tcp(args.H, args.P, args.p)
+    rcon = tcp(args.H, int(args.P), args.p)
     Response = rcon.command(args.c)
     print(Response)
