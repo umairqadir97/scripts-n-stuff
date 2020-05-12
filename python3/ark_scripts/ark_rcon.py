@@ -2,14 +2,6 @@
 # Lucas Rountree, 2020
 #
 # Import as module or run from shell.
-#
-# Usage:
-# import ark_rcon
-# connect = ark_rcon.tcp(Host, Port, Pass)
-# rcon = connect.command
-# (or: rcon = ark_rcon.tcp(Host, Port, Pass).command)
-# (or: from ark_rcon import tcp, rcon = tcp(Host, Port, Pass).command)
-# rcon(<command>)
 # 
 ## Request Types:
 # 3: SERVERDATA_AUTH
@@ -45,6 +37,7 @@ class tcp:
     connect = ark_rcon.rcp(<host name or ip>, <rcon port>, <rcon password>)
     rcon = connect.command
     rcon(<command request>)
+    or from ark_rcon import tcp; rcon = tcp(<host>, <port>, <pass>).command; rcon(<command>)
 
     -- Defaults --
     Host: localhost
