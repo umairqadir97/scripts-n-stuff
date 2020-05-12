@@ -56,6 +56,14 @@ class tcp:
     
     # Set up function to grab rcon server response
     def get_response(self):
+        """Grab server response to previous request from response stream
+        If response contains data, output is:
+        SIZE: response size in integer
+        ID: unique request id
+        TYPE: response type numerical id
+        BODY: full server response message
+        Otherwise, return False
+        """
         Iteration = 0
         while Iteration < 11:
             Response = self.packet.recv(calcsize('<3i'))
@@ -71,12 +79,20 @@ class tcp:
     
     # Ark rcon requires a very specific packet format, set up function to create and pack the packet correctly
     def create_message(self,ID,BODY,TYPE):
+        """Package rcon command into format the ark server will accept
+        ID: unique id for this request
+        BODY: rcon command request
+        TYPE: specific request type numerical id
+        """
         Size = len(BODY) + 10 # get packet size
         Message = BODY.encode('utf-8') # encode message body
         return pack('<3i{0}s'.format(len(BODY)), Size, ID, TYPE, Message) + b'\x00\x00' # format the packet for the rcon server
 
     # Set up function to connect to and attempt authentication with the rcon server
     def auth(self):
+        """Connect to rcon server, and if a password is provided then attempt to authenticate
+        Output is True if successful or sys exit/server response if not
+        """
         try:
             self.packet.connect((self.Host,self.Port)) # Connect to rcon host
         except:
@@ -110,6 +126,10 @@ class tcp:
     
     # Set up function to send command request to rcon server
     def command(self, Command):
+        """Send the specified command to the rcon server
+        This is typically the only function the end user will interact with, it leverages all previous functions to perform its action
+        Output will be either the server response or sys exit
+        """
         Auth = self.auth()
         if Auth != True:
             self.packet.close()
