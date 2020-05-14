@@ -7,7 +7,7 @@
 
 # Import common modules
 import os, sys, yaml
-from subprocess import run
+from subprocess import run, PIPE
 from datetime import datetime
 
 # Import custom modules
@@ -15,23 +15,29 @@ from ark_rcon import tcp
 
 # Populate variables
 DateTime = datetime.now().strftime('%Y%m%d-%H%M%S') # Get current date and time
-Backup_Name = 'Ark_Server-' + DateTime + '.tar.gz' # Backup file name
-Backup_Destination = '/backup/ark_server/' # Directory path for backup file
-Backup_Path = Backup_Destination + Backup_Name # Full backup path
 Config_File = os.path.join(os.getcwd() + '/', 'rcon_server.yaml') # Path for config file rcon_server.yaml
 
-for PATH in Backup_Destination, Backup_Path, Config_File: # Check that specified paths exist, error out if not
-    if not os.path.exists(PATH):
-        sys.exit('Path does not exist!: ' + PATH)
-
-with open(Server_Config_File, 'r') as Input_File: # Pull key/values from yaml config file
+with open(Config_File, 'r') as Input_File: # Pull key/values from yaml config file
     Config_Data = yaml.safe_load(Input_File)
 
 for VAR in Config_Data: # Populate variables with yaml data
     globals()[str(VAR)] = Config_Data[VAR]
 
+Backup_Name = Session + '_' + DateTime + '.tar.gz' # Backup file name
+Backup_Path = os.path.join(Backup_Directory, Backup_Name) # Create full backup path
+
+# Verify paths and files
+for PATH in Backup_Directory, Config_File:
+    if not os.path.exists(PATH):
+        sys.exit('Path does not exist!: ' + PATH)
+
 # Set up rcon command
-rcon = tcp(Host, Rcon_Port, Rcon_Pass).command
+def rcon(Command):
+    try:
+        Response = tcp(Host, Rcon_Port, Rcon_Pass).command(Command)
+    except:
+        return sys.exc_info()
+    return Response
 
 # Define server command functions
 def start():
@@ -40,20 +46,14 @@ def start():
         Usage: ark_server.start()
         Output: sys exit, stderr, or stdout
         """
-        Server_Path = Steam_Home + Exec_Path
+        Server_Path = os.path.join(Steam_Home, Exec_Path)
         if Rcon_Enabled == True:
-            Rcon_Command = '?RCONEnabled=True?RCONPort=' + Rcon_Port + '?ServerAdminPassword=' + Rcon_Pass
+            Rcon_Command = '?RCONEnabled=True?RCONPort=' + str(Rcon_Port) + '?ServerAdminPassword=' + Rcon_Pass
         else:
             Rcon_Command = '?RCONEnabled=False'
-        Server_Command = Map + '?Listen?SessionName=' + Session + '?ServerPassword=' + Server_Pass + '?QueryPort=' + '?MaxPlayers=' + Max_Players + Rcon_Command
-#        Command_Options = ''
-#        for I,X in enumerate(Options):
-#            if I == len(Options) - 1:
-#                Command_Options += X
-#            else:
-#                Command_Options += X + ' '
+        Server_Command = Map + '?Listen?SessionName=' + Session + '?ServerPassword=' + Server_Pass + '?QueryPort=' + str(Query_Port) + '?MaxPlayers=' + str(Max_Players) + Rcon_Command
         try:
-            Start_Server = run([Server_path, Server_Command, Command_Options], capture_output=True)
+            Start_Server = run([Server_Path, Server_Command, Command_Options], stdout=PIPE, stderr=PIPE)
         except:
             return sys.exc_info()
         else:
@@ -66,31 +66,18 @@ def stop():
     Usage: ark_server.stop()
     Output: sys exit or server response
     """
-    try:
-        Save_Request = rcon('SaveWorld')
-    except:
-        return sys.exc_info()
-    else:
-        if Save_Request[1] == 'World Saved'
-            try:
-                Stop_Request = rcon('DoExit')
-            except:
-                return sys.exc_info()
-            else:
-                return Stop_Request
-        return Save_Request
+    Save_Request = rcon('SaveWorld')
+    if Save_Request[1] == 'World Saved':
+        Stop_Request = rcon('DoExit')
+        return Stop_Request
+    return Save_Request
 
 def scrub():
     """Destroys all wild dinos on the ark server
     Usage: ark_server.scrub()
     Output: sys exit or server response
     """
-    try:
-        Scrub_Request = rcon('DestroyWildDinos')
-    except:
-        return sys.exc_info()
-    else:
-        return Scrub_Request
+    return rcon('DestroyWildDinos')
 
 def update():
     """Updates the ark server, which must be stopped first
@@ -98,7 +85,7 @@ def update():
     Output: sys exit, stderr, or stdout
     """
     try:
-        Update_Server = run(['steamcmd', '+login', 'anonymous', '+force_install_dir', Home, '+app_update', '376030', '+quit'], capture_output=True)
+        Update_Server = run(['steamcmd', '+login', 'anonymous', '+force_install_dir', Steam_Home, '+app_update', '376030', '+quit'], stdout=PIPE, stderr=PIPE)
     except:
         return sys.exc_info()
     else:
@@ -112,7 +99,7 @@ def backup():
     Output: sys exit, stderr, or stdout
     """
     try:
-        Create_Backup = run(['tar', 'czf', Backup_Path, Home + '/ShooterGame/Saved'])
+        Create_Backup = run(['tar', 'czf', Backup_Path, Steam_Home + '/ShooterGame/Saved'], stdout=PIPE, stderr=PIPE)
     except:
         return sys.exc_info()
     else:
@@ -125,11 +112,7 @@ def alert(Message):
     Usage: ark_server.alert(<message>)
     Output: sys exit or server response
     """
-    try:
-        Server_Response = rcon('Broadcast ' + Message)
-    except:
-        return sys.exc_info()
-    return Server_Response
+    return rcon('Broadcast ' + Message)
 
 def send_command(Command):
     """This performs rcon(<command>), provided here for console commands not preconfigured by this script
@@ -137,8 +120,4 @@ def send_command(Command):
     Usage: ark_server.command(<command>)
     Output: sys exit or server response
     """
-    try:
-        Server_Response = rcon(Command)
-    except:
-        return sys.exc_info()
-    return Server_Response
+    return rcon(Command)

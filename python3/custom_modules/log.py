@@ -70,14 +70,24 @@ class LOG:
 
     # Set up logging functions as part of the LOG class
     def debug(self, Log_Data):
+        """debug level logging
+        """
         logger.debug(Log_Data)
     def info(self, Log_Data):
+        """info level logging
+        """
         logger.info(Log_Data)
     def warning(self, Log_Data):
+        """warning level logging
+        """
         logger.warning(Log_Data)
     def error(self, Log_Data):
+        """error level logging
+        """
         logger.error(Log_Data)
     def critical(self, Log_Data):
+        """critical level logging
+        """
         logger.critical(Log_Data)
 
 # Run as a script

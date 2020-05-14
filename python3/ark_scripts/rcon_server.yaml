@@ -2,7 +2,8 @@
 #
 # Note: current values are default or place holders, please modify for your setup
 Steam_Home: /home/steam
-Exec_Path: &Exec_Path /ShooterGame/Binaries/Linux/ShooterGameServer
+Exec_Path: ShooterGame/Binaries/Linux/ShooterGameServer
+Backup_Directory: /backup/ark
 Map: TheIsland
 Session: 'ServerName'
 Server_Pass: ''
