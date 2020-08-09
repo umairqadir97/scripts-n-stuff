@@ -9,7 +9,7 @@ Script will read hosts from a file and check each for:
 Script will iterate through each host line in the file, errors for each host will be printed to the terminal and sent to a log file.
 
 ## Running from terminal
-bash check_ssh.sh <optional host file>
+bash check_ssh.sh [optional host file]
 
 #### Optional Host File
 This is the path to a file, useful for git repos etc where up to date host files are kept.
