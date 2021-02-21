@@ -15,7 +15,7 @@ class LOG:
     As Module:
         from log import LOG
         log = LOG('Logger = ', 'Destination_File_Path = ', 'Console_Level = ', 'File_Level = ')
-        log.[level]('Log_Data')
+        log.<level>('Log_Data')
     -- Definitions --
     Logger - custom name for the logger, for easier identification
     Destination_File_Path - where to write log data, requires full path to file on disk
