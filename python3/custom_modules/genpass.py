@@ -10,10 +10,10 @@ def alpha_numeric(LEN):
         return False
     pool = string.ascii_letters + string.digits
     while True:
-        result = ''.join(secrets.choice(pool) for I in range(LEN))
-        if (any(I.islower() for I in result)
-                and any(I.isupper() for I in result)
-                and sum(I.isdigit() for I in result) >= 3):
+        result = ''.join(secrets.choice(pool) for X in range(LEN))
+        if (any(X.islower() for X in result)
+                and any(X.isupper() for X in result)
+                and sum(X.isdigit() for X in result) >= 3):
             break
     return result
 
@@ -23,10 +23,11 @@ def random_characters(LEN):
         return False
     pool = string.ascii_letters + string.digits + string.punctuation
     while True:
-        result = ''.join(secrets.choice(pool) for I in range(LEN))
-        if (any(I.islower() for I in result)
-                and any(I.isupper() for I in result)
-                and sum(I.isdigit() for I in result) >= 3):
+        result = ''.join(secrets.choice(pool) for X in range(LEN))
+        if (any(X.islower() for X in result)
+                and any(X.isupper() for X in result)
+                and sum(X.isdigit() for X in result) >= 3
+                and [X in string.punctuation for X in result].count(True) <= 5):
             break
     return result
 
