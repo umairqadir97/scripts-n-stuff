@@ -6,6 +6,12 @@ import string, secrets, requests
 
 # alpha numeric
 def alpha_numeric(LEN):
+    '''
+    Outputs password LEN characters long composed of lowercase, uppercase, and numbers.
+    genpass.alpha_numeric(LEN)
+    LEN: Integer, how many characters long you want your password to be.
+    Output: String, or False on failure.
+    '''
     if type(LEN) is not int:
         return False
     pool = string.ascii_letters + string.digits
@@ -19,9 +25,16 @@ def alpha_numeric(LEN):
 
 # random characters
 def random_characters(LEN):
+    '''
+    Outputs password LEN characters long composed of lowercase, uppercase, numbers, and symbols.
+    genpass.random_characters(LEN)
+    LEN: Integer, how many characters long you want your password to be.
+    Output: String, or False on failure.
+    '''
+    symbol_list = '@$%^&()[]><*?'
     if type(LEN) is not int:
         return False
-    pool = string.ascii_letters + string.digits + string.punctuation
+    pool = string.ascii_letters + string.digits + symbol_list
     while True:
         result = ''.join(secrets.choice(pool) for X in range(LEN))
         if (any(X.islower() for X in result)
@@ -33,6 +46,13 @@ def random_characters(LEN):
 
 # xkcd
 def xkcd(LEN):
+    '''
+    Outputs XKCD style password composed of LEN amount of words, seperated by spaces.
+    Requires internet access.
+    genpass.xkcd(LEN)
+    LEN: Integer, how many random words you want in your password.
+    Output: String, or False on failure.
+    '''
     if type(LEN) is not int:
         return False
     get_words = 'https://www.mit.edu/~ecprice/wordlist.10000'
