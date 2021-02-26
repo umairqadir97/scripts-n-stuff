@@ -19,3 +19,4 @@ touch /root/ipa/directorymanager.pw
 RUN yum install \
 ipa-server \
 ipa-server-dns -y
+CMD ["/usr/sbin/init"]

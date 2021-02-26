@@ -3,13 +3,22 @@
 ## Node specific info
 Node_FQDN: 'ipa-master-1.test.local'
 Volumes:
-  #'/etc/ntp.conf:/etc/ntp.conf:ro,
-  #/etc/localtime:/etc/localtime:ro,
-  #/etc/timezone:/etc/timezone:ro'
+  - '/etc/ntp.conf:/etc/ntp.conf:ro'
+  - '/etc/localtime:/etc/localtime:ro'
+  - '/etc/timezone:/etc/timezone:ro'
+Ports:
+  - '80/tcp:80'
+  - '88/tcp:88'
+  - '389/tcp:389'
+  - '443/tcp:443'
+  - '464/tcp:464'
+  - '636/tcp:636'
+  - '88/udp:88'
+  - '464/udp:464'
 
 ## External DNS info
 Zone_Rev_IP: '01.002.03.in-addr.arpa'
-Zone_Fwd_DNS: 'ipa.test.local'
+Zone_Fwd_DNS: 'test.local'
 
 ## Cluster info
 # Define domain
@@ -54,14 +63,17 @@ Master1_Options:
   - 'realm=VAL'
   - 'hostname=VAL'
   - 'ds-password=VAL'
+
 # Master2 Node Options
 Master2_Options:
   - 'setup-ca'
+
 # Satellite Node Options
 Replica_Command: 'ipa-replica-install'
 Replica_Options:
   - 'server=VAL'
   - 'principal=VAL'
+
 # All Node Options
 IPA_Install_Options:
   - 'unattended'

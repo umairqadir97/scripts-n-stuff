@@ -1,13 +1,16 @@
 # python 3.9
 # This script is intended to build an IPA server in a docker container
-# Requires: custome_docker_modules.py, log.py, ipa.Dockerfile, parameters.yaml
+# EC2 Instance Host: IAM Role plume-ec2-default, disable ipv6
+# Required Packages: python 3.9, docker 20
+# Required Files: custome_docker_modules.py, log.py, ipa.Dockerfile, parameters.yaml
 
 # Import Common Modules
-import sys, yaml
+import sys, yaml, base64
 from subprocess import run
 
 # Import Custom Modules
 from log import LOG
+import genpass
 import custom_docker_modules as CDM
 
 # Set Up Generic Variables
@@ -15,6 +18,7 @@ import custom_docker_modules as CDM
 Context_Path = '.'
 Parameter_File = 'parameters.yaml'
 Log_File = 'ipa.log'
+IPA_Net = 'ipanet'
 
 # Grab Parameter File Data
 parameters = yaml.full_load(open(r'%s' %Parameter_File))
@@ -25,6 +29,7 @@ Docker_File = parameters['Docker_File']
 Domain_Name = parameters['Domain_Name']
 Host_FQDN = parameters['Node_FQDN']
 Host_Shortname = Host_FQDN.split('.')[0]
+Ports = parameters['Ports']
 Volumes = parameters['Volumes']
 Zone_Rev_IP = parameters['Zone_Rev_IP']
 Zone_Fwd_DNS = parameters['Zone_Fwd_DNS']
@@ -58,8 +63,16 @@ else:
         log.critical(build_result[1])
         sys.exit(1)
 
+# Check for IPA Network, build if not found
+net_result = CDM.create_net(IPA_Net, 'bridge', IPV6=True, SCOPE='local')
+if net_result[0]:
+    log.info(net_result[1])
+else:
+    log.critical(net_result[1])
+    sys.exit(1)
+
 # Run IPA Container
-run_result = CDM.run_container(Host_FQDN, Image_Version, Volumes)
+run_result = CDM.run_container(Host_FQDN, Image_Version, IPA_Net, Ports, Volumes)
 if run_result[0]:
     log.info(run_result[1])
 else:
@@ -76,27 +89,46 @@ elif container_status[1] != 'running':
     sys.exit(1)
 else:
     log.info(f'Container is running')
+
 ##-update hosts file
 command_result = CDM.send_command(Host_Shortname, f'bash -c \'echo -e "{Hosts_Block}" >> /etc/hosts\'')
 if command_result[0]:
     log.info(f'Hosts file successfully written')
 else:
-    log.warning(f'Could not write to hosts file: ' + command_result[1][2])
+    log.warning(f'Could not write to hosts file: ' + command_result[1][1])
+
 ##-generate and encrypt passwords, save encrypted passwords to local file
-Admin_Password_Command = f'bash -c \'openssl rand -base64 24 >> /root/ipa/admin.pw\''
+Admin_Password = base64.b64encode(genpass.random_characters(24).encode())
+DM_Password = base64.b64encode(genpass.random_characters(24).encode())
+Admin_Password_Command = f'bash -c \'echo "{Admin_Password.decode()}" > /root/ipa/admin.pw\''
+log.info(f'Admin Password Command: {Admin_Password_Command}')
 command_result = CDM.send_command(Host_Shortname, Admin_Password_Command)
 if command_result[0]:
-    log.info(f'Admin password generated and written to password file')
+    log.info(f'Admin password generated and written to password file: {command_result}')
 else:
-    log.warning(f'Could not generate admin password or write to password file')
-DM_Password_Command = f'bash -c \'openssl rand -base64 24 >> /root/ipa/directorymanager.pw\''
+    log.warning(f'Could not write to password file')
+DM_Password_Command = f'bash -c \'echo "{DM_Password.decode()}" > /root/ipa/directorymanager.pw\''
+log.info(f'DM Password Command: {DM_Password_Command}')
 command_result = CDM.send_command(Host_Shortname, DM_Password_Command)
 if command_result[0]:
     log.info(f'Directory Manager password generated and written to password file')
 else:
-    log.warning(f'Could not generate directory manager password or write to password file')
+    log.warning(f'Could not write to password file')
+
+##-modify filesystem for IPA
+command_result = CDM.send_command(Host_Shortname, 'echo "0" > /proc/sys/fs/protected_regular')
+if command_result[0]:
+    log.info('Modified protected_regular file')
+    command_result = CDM.send_command(Host_Shortname, 'sysctl -p')
+    if command_result[0]:
+        log.info('Loaded sysctl config')
+    else:
+        log.warning('Failed to load sysctl config')
+else:
+    log.warning('Could not modify protected_regular file')
+
 ##-install IPA
-Install_Command = '\'bash -c '
+Install_Command = 'bash -c \''
 if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
     Install_Command += parameters['Master1_Command'] + ' '
     for OPT in parameters['Master1_Options']:
@@ -107,7 +139,7 @@ if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
         elif OPT.split('=')[0] == 'hostname':
             Install_Command += '--' + OPT.replace('VAL', IPA_Master_FQDN) + ' '
         elif OPT.split('=')[0] == 'ds-password':
-            Install_Command += '--' + OPT.replace('VAL', '$(< /root/ipa/directorymanager.pw)') + ' '
+            Install_Command += '--' + OPT.replace('VAL', f'{base64.b64decode(DM_Password).decode()}') + ' '
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
@@ -134,19 +166,17 @@ for OPT in parameters['IPA_Install_Options']:
     if OPT.split('=')[0] == 'domain':
         Install_Command += '--' + OPT.replace('VAL', Zone_Fwd_DNS) + ' '
     elif OPT.split('=')[0] == 'admin-password':
-        Install_Command += '--' + OPT.replace('VAL', '$(< /root/ipa/admin.pw)')
+        Install_Command += '--' + OPT.replace('VAL', f'{base64.b64decode(Admin_Password).decode()}')
     else:
         Install_Command += '--' + OPT + ' '
 Install_Command += '\''
 command_result = CDM.send_command(Host_Shortname, Install_Command)
-log.info(f'TEST COMMAND: ' + Install_Command)
+log.info(f'INSTALL COMMAND: {Install_Command}')
 if command_result[0]:
     log.info('IPA has been successfully installed')
 else:
-    log.warning(f'IPA failed to install: ' + command_result[1][1].decode('utf-8'))
-##-master-01 config
-###-install ipa master
-###-add replicas
+    log.warning(f'IPA failed to install: ' + str(command_result[1]))
+
 ###-remove ipa pw files
 ###-remove p12 pw files
 ##-master-02 config

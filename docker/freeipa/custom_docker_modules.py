@@ -39,14 +39,15 @@ def build_image(FILE, TAG, PATH):
     return True, f'Built image {TAG}'
 
 # Check for and create network
-def create_net(NAME, DRIVER, IPV6, SCOPE):
+def create_net(NAME, DRIVER, SCOPE, IPV6 = None):
     '''
     custom_docker_modules.network.create(<NAME>, <DRIVER>, <IPV6>, <SCOPE>)
     NAME: name of docker network
     DRIVER: bridge, host, overlay, macvlan, none
-    IPV6: enable ipv6- True, False
+    IPV6: optional, enable ipv6- True, False
     SCOPE: local, global, swarm
     '''
+    Ipam_Config = docker.types.IPAMConfig(pool_configs=[docker.types.IPAMPool(subnet='2001:db8:1::/64')])
     try:
         Check_Net = client.networks.get(NAME)
     except docker.errors.NotFound:
@@ -56,17 +57,20 @@ def create_net(NAME, DRIVER, IPV6, SCOPE):
     else:
         return True, f'Network {NAME} exists, skipping create'
     if Check_Net == 'Create':
-        try:
-            Create_Net = client.networks.create(NAME, driver=DRIVER, ipv6=IPV6, scope=SCOPE)
-        except:
-            return False, f'Failed to create network {NAME}: ' + str(sys.exc_info()[1])
-    if Create_Net[0] == 0:
+        if IPV6 is None:
+            try:
+                Create_Net = client.networks.create(NAME, driver=DRIVER, scope=SCOPE)
+            except:
+                return False, f'Failed to create network {NAME}: ' + str(sys.exc_info()[1])
+        else:
+            try:
+                Create_Net = client.networks.create(NAME, driver=DRIVER, enable_ipv6=IPV6, ipam=Ipam_Config, scope=SCOPE)
+            except:
+                return False, f'Failed to create network {NAME} with ipv6: ' + str(sys.exc_info()[1])
         return True, 'Created network {Name}'
-    else:
-        return False, f'Failed to create network {Name}: ' + Create_Net[1]
 
 # Run container
-def run_container(HOSTNAME, IMAGE, *VOLS):
+def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
     '''
     custom_docker_modules.run_container(<HOSTNAME>, <IMAGE>, <VOLS>)
     HOSTNAME: FQDN of container
@@ -75,25 +79,49 @@ def run_container(HOSTNAME, IMAGE, *VOLS):
           '/source/path:/dest/path:opts', seperated by commas
     '''
     NAME = HOSTNAME.split('.')[0]
-    if not VOLS or VOLS[0] is None:
+    def gen_ports(LIST):
+        gen_dict = {}
+        for ITEM in LIST:
+            ITEM = ITEM.split(':')
+            gen_dict[ITEM[0]] = ITEM[1]
+        return gen_dict
+    def gen_vols(LIST):
+        gen_dict = {}
+        for ITEM in LIST:
+            ITEM = ITEM.split(':')
+            if len(ITEM) > 3:
+                return False, f'Too many values in container run volume option: {ITEM}'
+            elif len(ITEM) == 3:
+                gen_dict[ITEM[0]] = {'bind': ITEM[1], 'mode': ITEM[2]}
+            else:
+                gen_dict[ITEM[0]] = {'bind': ITEM[1]}
+        return gen_dict
+    if PORTS is None and VOLS is None:
         try:
-            client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, name=NAME, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, network=NET, name=Name, hostname=HOSTNAME)
+        except:
+            return False, f'Failed to run container {Name}: ' + str(sys.exc_info()[1])
+    elif PORTS is not None and VOLS is None:
+        Port_Dict = gen_ports(PORTS)
+        try:
+            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, ports=Port_Dict, network=NET, name=Name, hostname=HOSTNAME)
+        except:
+            return False, f'Failed to run container {Name}: ' + str(sys.exc_info()[1])
+    elif PORTS is None and VOLS is not None:
+        Vol_Dict = gen_vols(VOLS)
+        if not Vol_Dict[0]:
+            return False, Vol_Dict[1]
+        try:
+            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, volumes=Vol_Dict, network=NET, name=NAME, hostname=HOSTNAME)
         except:
             return False, f'Failed to run {NAME}: ' + str(sys.exc_info()[1])
     else:
-        Vol_Dict={}
-        for VOLUME in VOLS:
-            VOLUME = VOLUME.split(':')
-            if len(VOLUME) > 3:
-                return False, 'Too many values in container run volume option: ' + str(':'.join({VOLUME}))
-            elif len(VOLUME) == 3:
-                Vol_Dict[VOLUME[0]] = {'bind': VOLUME[1], 'mode': VOLUME[2]}
-            else:
-                Vol_Dict[VOLUME[0]] = {'bind': VOLUME[1]}
+        Port_Dict = gen_ports(PORTS)
+        Vol_Dict = gen_vols(VOLS)
         try:
-            client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, volumes=Vol_Dict, name=NAME, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, ports=Port_Dict, volumes=Vol_Dict, network=NET, name=NAME, hostname=HOSTNAME)
         except:
-            return False, f'Failed to run {NAME}: ' + str(sys.exc_info()[1])
+            return False, f'Failed to run container {NAME}: ' + str(sys.exc_info()[1])
     if not client.containers.list(filters={'name': NAME}):
         return False, f'Container {NAME} was NOT created!'
     return True, f'Container {NAME} has been created'
