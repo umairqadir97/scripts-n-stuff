@@ -62,27 +62,39 @@ def xkcd(LEN):
     return ' '.join(secrets.choice(word_list) for X in range(LEN))
 
 # encrypt password string
-def encrypt_password(IN):
+def encrypt_password(IN, KEY=None):
     '''
     Encrypt a password string using fernet for local storage etc.
     genpass.encrypt_password(IN)
     IN: Password string to encrypt
-    Output: tuple, first object is encryption key and second is the encrypted password bytes.
+    KEY: Optional fernet encryption key to include
+    Output: tuple, first object is the encrypted password bytes and the \
+            second is the encryption key bytes, or False on failure
     '''
+    if not KEY:
+        key = crypt.generate_key()
+    else:
+        key = KEY
     if type(IN) is not str:
         return False
     IN = IN.encode()
-    key = crypt.generate_key()
-    encrypted = crypt(key).encrypt(IN)
-    return key, encrypted
+    try:
+        result = crypt(key).encrypt(IN)
+    except:
+        return False
+    return result, key
 
 # decrypt password bytes
-def decrypt_password(KEY, IN):
+def decrypt_password(IN, KEY):
     '''
     Decrypt a password using a provided fernet generated key.
     gnepass.decrypt_password(KEY, IN)
-    KEY: Key to decrypt password
     IN: Fernet encrypted password bytes to decrypt
-    Output: Decrypted password in string format
+    KEY: Key to decrypt password
+    Output: Decrypted password in string format, False on failure
     '''
-    return crypt(KEY).decrypt(IN).decode()
+    try:
+        result = crypt(KEY).decrypt(IN).decode()
+    except:
+        return False
+    return result
