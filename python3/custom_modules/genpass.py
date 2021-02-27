@@ -32,10 +32,10 @@ def random_characters(LEN):
     LEN: Integer, how many characters long you want your password to be.
     Output: String, or False on failure.
     '''
-    symbol_list = '@$%^&()[]><*?'
+#    symbol_list = '@$%^&()[]><*?+=-_'
     if type(LEN) is not int:
         return False
-    pool = string.ascii_letters + string.digits + symbol_list
+    pool = string.ascii_letters + string.digits + string.punctuation
     while True:
         result = ''.join(secrets.choice(pool) for X in range(LEN))
         if (any(X.islower() for X in result)
