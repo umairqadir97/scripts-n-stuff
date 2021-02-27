@@ -1,11 +1,11 @@
 # python 3.9
 # This script is intended to build an IPA server in a docker container
-# EC2 Instance Host: IAM Role plume-ec2-default, disable ipv6
+# EC2 Instance Host: IAM Role plume-ec2-default
 # Required Packages: python 3.9, docker 20
-# Required Files: custome_docker_modules.py, log.py, ipa.Dockerfile, parameters.yaml
+# Required Files: custom_docker_modules.py, genpass.py, log.py, ipa.Dockerfile, parameters.yaml
 
 # Import Common Modules
-import sys, yaml, base64
+import os, sys, yaml, base64
 from subprocess import run
 
 # Import Custom Modules
@@ -26,6 +26,7 @@ parameters = yaml.full_load(open(r'%s' %Parameter_File))
 # Populate Custom Variables
 Image_Version = parameters['Container_Image']
 Docker_File = parameters['Docker_File']
+Password_File = parameters['Password_File']
 Domain_Name = parameters['Domain_Name']
 Host_FQDN = parameters['Node_FQDN']
 Host_Shortname = Host_FQDN.split('.')[0]
@@ -98,22 +99,33 @@ else:
     log.warning(f'Could not write to hosts file: ' + command_result[1][1])
 
 ##-generate and encrypt passwords, save encrypted passwords to local file
-Admin_Password = base64.b64encode(genpass.random_characters(24).encode())
-DM_Password = base64.b64encode(genpass.random_characters(24).encode())
-Admin_Password_Command = f'bash -c \'echo "{Admin_Password.decode()}" > /root/ipa/admin.pw\''
-log.info(f'Admin Password Command: {Admin_Password_Command}')
-command_result = CDM.send_command(Host_Shortname, Admin_Password_Command)
-if command_result[0]:
-    log.info(f'Admin password generated and written to password file: {command_result}')
-else:
-    log.warning(f'Could not write to password file')
-DM_Password_Command = f'bash -c \'echo "{DM_Password.decode()}" > /root/ipa/directorymanager.pw\''
-log.info(f'DM Password Command: {DM_Password_Command}')
-command_result = CDM.send_command(Host_Shortname, DM_Password_Command)
-if command_result[0]:
-    log.info(f'Directory Manager password generated and written to password file')
-else:
-    log.warning(f'Could not write to password file')
+#Admin_Password = base64.b64encode(genpass.random_characters(24).encode())
+#DM_Password = base64.b64encode(genpass.random_characters(24).encode())
+if not os.path.exists(Password_File):
+    Get_Admin = genpass.encrypt_password(genpass.random_characters(24))
+    Get_DM = genpass.encrypt_password(genpass.random_characters(24))
+    yaml.dump({'admin': {'lock': Get_Admin[0], 'key': Get_Admin[1]}}, open(Password_File, 'w'))
+    yaml.dump({'directorymanager': {'lock': Get_DM[0], 'key': Get_DM[1]}}, open(Password_File, 'a'))
+Read_Yaml = yaml.full_load(open(Password_File, 'r'))
+Admin_Block = Read_Yaml['admin']
+DM_Block = Read_Yaml['directorymanager']
+Admin_Password = genpass.decrypt(Admin_Block['lock'], Admin_Block['key'])
+DM_Password = genpass.decrypt(DM_Block['lock'], DM_Block['key'])
+
+#Admin_Password_Command = f'bash -c \'echo "{genpass.decrypt_password(Admin_Key, Admin_Password)}" > /root/ipa/admin.pw\''
+#log.info(f'Admin Password Command: {Admin_Password_Command}')
+#command_result = CDM.send_command(Host_Shortname, Admin_Password_Command)
+#if command_result[0]:
+#    log.info(f'Admin password generated and written to password file: {command_result}')
+#else:
+#    log.warning(f'Could not write to password file')
+#DM_Password_Command = f'bash -c \'echo "{DM_Password.decode()}" > /root/ipa/directorymanager.pw\''
+#log.info(f'DM Password Command: {DM_Password_Command}')
+#command_result = CDM.send_command(Host_Shortname, DM_Password_Command)
+#if command_result[0]:
+#    log.info(f'Directory Manager password generated and written to password file')
+#else:
+#    log.warning(f'Could not write to password file')
 
 ##-modify filesystem for IPA
 command_result = CDM.send_command(Host_Shortname, 'echo "0" > /proc/sys/fs/protected_regular')
@@ -139,7 +151,7 @@ if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
         elif OPT.split('=')[0] == 'hostname':
             Install_Command += '--' + OPT.replace('VAL', IPA_Master_FQDN) + ' '
         elif OPT.split('=')[0] == 'ds-password':
-            Install_Command += '--' + OPT.replace('VAL', f'{base64.b64decode(DM_Password).decode()}') + ' '
+            Install_Command += '--' + OPT.replace('VAL', f'{DM_Password}') + ' '
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
@@ -166,7 +178,7 @@ for OPT in parameters['IPA_Install_Options']:
     if OPT.split('=')[0] == 'domain':
         Install_Command += '--' + OPT.replace('VAL', Zone_Fwd_DNS) + ' '
     elif OPT.split('=')[0] == 'admin-password':
-        Install_Command += '--' + OPT.replace('VAL', f'{base64.b64decode(Admin_Password).decode()}')
+        Install_Command += '--' + OPT.replace('VAL', f'{Admin_Password}')
     else:
         Install_Command += '--' + OPT + ' '
 Install_Command += '\''

@@ -54,6 +54,7 @@ Client_Nodes:
 # Define IPA Image
 Container_Image: 'ipa:1.0'
 Docker_File: 'ipa.Dockerfile'
+Password_File: 'auth.yaml'
 
 ## IPA Install
 # Master1 Node Options

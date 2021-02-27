@@ -3,6 +3,7 @@
 
 # import common modules
 import string, secrets, requests
+from cryptography.fernet import Fernet as crypt
 
 # alpha numeric
 def alpha_numeric(LEN):
@@ -40,7 +41,7 @@ def random_characters(LEN):
         if (any(X.islower() for X in result)
                 and any(X.isupper() for X in result)
                 and sum(X.isdigit() for X in result) >= 3
-                and [X in string.punctuation for X in result].count(True) <= 3):
+                and [X in string.punctuation for X in result].count(True) <= 5):
             break
     return result
 
@@ -59,3 +60,40 @@ def xkcd(LEN):
     response = requests.get(get_words)
     word_list = [X.decode('utf-8') for X in response.content.splitlines()]
     return ' '.join(secrets.choice(word_list) for X in range(LEN))
+
+# encrypt password string
+def encrypt_password(IN, KEY=None):
+    '''
+    Encrypt a password string using fernet for local storage etc.
+    genpass.encrypt_password(IN)
+    IN: Password string to encrypt
+    KEY: Optional fernet encryption key to include
+    Output: tuple, first object is the encrypted password bytes and the second is the encryption key bytes
+    '''
+    if not KEY:
+        key = crypt.generate_key()
+    else:
+        key = KEY
+    if type(IN) is not str:
+        return False
+    IN = IN.encode()
+    try:
+        result = crypt(key).encrypt(IN)
+    except:
+        return False
+    return result, key
+
+# decrypt password bytes
+def decrypt_password(IN, KEY):
+    '''
+    Decrypt a password using a provided fernet generated key.
+    gnepass.decrypt_password(KEY, IN)
+    IN: Fernet encrypted password bytes to decrypt
+    KEY: Key to decrypt password
+    Output: Decrypted password in string format
+    '''
+    try:
+        result = crypt(KEY).decrypt(IN).decode()
+    except:
+        return False
+    return result
