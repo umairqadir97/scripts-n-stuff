@@ -109,8 +109,8 @@ if not os.path.exists(Password_File):
 Read_Yaml = yaml.full_load(open(Password_File, 'r'))
 Admin_Block = Read_Yaml['admin']
 DM_Block = Read_Yaml['directorymanager']
-Admin_Password = genpass.decrypt(Admin_Block['lock'], Admin_Block['key'])
-DM_Password = genpass.decrypt(DM_Block['lock'], DM_Block['key'])
+Admin_Password = genpass.decrypt_password(Admin_Block['lock'], Admin_Block['key'])
+DM_Password = genpass.decrypt_password(DM_Block['lock'], DM_Block['key'])
 
 #Admin_Password_Command = f'bash -c \'echo "{genpass.decrypt_password(Admin_Key, Admin_Password)}" > /root/ipa/admin.pw\''
 #log.info(f'Admin Password Command: {Admin_Password_Command}')
@@ -151,7 +151,7 @@ if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
         elif OPT.split('=')[0] == 'hostname':
             Install_Command += '--' + OPT.replace('VAL', IPA_Master_FQDN) + ' '
         elif OPT.split('=')[0] == 'ds-password':
-            Install_Command += '--' + OPT.replace('VAL', f'{DM_Password}') + ' '
+            Install_Command += '--' + OPT.replace('VAL', f'\"{DM_Password}\"') + ' '
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
@@ -178,7 +178,7 @@ for OPT in parameters['IPA_Install_Options']:
     if OPT.split('=')[0] == 'domain':
         Install_Command += '--' + OPT.replace('VAL', Zone_Fwd_DNS) + ' '
     elif OPT.split('=')[0] == 'admin-password':
-        Install_Command += '--' + OPT.replace('VAL', f'{Admin_Password}')
+        Install_Command += '--' + OPT.replace('VAL', f'\"{Admin_Password}\"')
     else:
         Install_Command += '--' + OPT + ' '
 Install_Command += '\''
