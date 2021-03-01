@@ -99,8 +99,6 @@ else:
     log.warning(f'Could not write to hosts file: ' + command_result[1][1])
 
 ##-generate and encrypt passwords, save encrypted passwords to local file
-#Admin_Password = base64.b64encode(genpass.random_characters(24).encode())
-#DM_Password = base64.b64encode(genpass.random_characters(24).encode())
 if not os.path.exists(Password_File):
     Get_Admin = genpass.encrypt_password(genpass.random_characters(24))
     Get_DM = genpass.encrypt_password(genpass.random_characters(24))
@@ -111,21 +109,6 @@ Admin_Block = Read_Yaml['admin']
 DM_Block = Read_Yaml['directorymanager']
 Admin_Password = genpass.decrypt_password(Admin_Block['lock'], Admin_Block['key'])
 DM_Password = genpass.decrypt_password(DM_Block['lock'], DM_Block['key'])
-
-#Admin_Password_Command = f'bash -c \'echo "{genpass.decrypt_password(Admin_Key, Admin_Password)}" > /root/ipa/admin.pw\''
-#log.info(f'Admin Password Command: {Admin_Password_Command}')
-#command_result = CDM.send_command(Host_Shortname, Admin_Password_Command)
-#if command_result[0]:
-#    log.info(f'Admin password generated and written to password file: {command_result}')
-#else:
-#    log.warning(f'Could not write to password file')
-#DM_Password_Command = f'bash -c \'echo "{DM_Password.decode()}" > /root/ipa/directorymanager.pw\''
-#log.info(f'DM Password Command: {DM_Password_Command}')
-#command_result = CDM.send_command(Host_Shortname, DM_Password_Command)
-#if command_result[0]:
-#    log.info(f'Directory Manager password generated and written to password file')
-#else:
-#    log.warning(f'Could not write to password file')
 
 ##-modify filesystem for IPA
 command_result = CDM.send_command(Host_Shortname, 'echo "0" > /proc/sys/fs/protected_regular')
@@ -155,7 +138,7 @@ if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
-    Install_Command += parameters['Replica_Command']
+    Install_Command += parameters['Replica_Command'] + ' '
     for OPT in parameters['Master2_Options']:
         Install_Command += '--' + OPT + ' '
     for OPT in parameters['Replica_Options']:
@@ -166,7 +149,7 @@ elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Satellite_Nodes']['SAT_1'][0] or Host_Shortname == parameters['Satellite_Nodes']['SAT_2'][0]:
-    Install_Command += parameters['Replica_Command']
+    Install_Command += parameters['Replica_Command'] + ' '
     for OPT in parameters['Replica_Options']:
         if OPT.split('=')[0] == 'server':
             Install_Command += '--' + OPT.replace('VAL', IPA_Master_FQDN) + ' '
@@ -188,13 +171,3 @@ if command_result[0]:
     log.info('IPA has been successfully installed')
 else:
     log.warning(f'IPA failed to install: ' + str(command_result[1]))
-
-###-remove ipa pw files
-###-remove p12 pw files
-##-master-02 config
-###-install ipa master replica
-###-remove ipa pw files
-###-remove p12 pw files
-
-
-# Check and Exit Code

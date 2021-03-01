@@ -6,6 +6,7 @@ Volumes:
   - '/etc/ntp.conf:/etc/ntp.conf:ro'
   - '/etc/localtime:/etc/localtime:ro'
   - '/etc/timezone:/etc/timezone:ro'
+  - '/sys/fs/cgroup:/sys/fs/cgroup:ro'
   - 'ipa-data:/data:Z'
 Ports:
   - '80/tcp:80'

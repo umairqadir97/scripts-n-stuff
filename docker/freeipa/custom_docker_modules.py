@@ -98,13 +98,30 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
         return gen_dict
     if PORTS is None and VOLS is None:
         try:
-            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, network=NET, name=Name, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, \
+                    detach=True, \
+                    stdin_open=True, \
+                    tty=True, \
+                    privileged=True, \
+                    dns=['127.0.0.1'], \
+                    network=NET, 
+                    name=Name, \
+                    hostname=HOSTNAME)
         except:
             return False, f'Failed to run container {Name}: ' + str(sys.exc_info()[1])
     elif PORTS is not None and VOLS is None:
         Port_Dict = gen_ports(PORTS)
         try:
-            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, ports=Port_Dict, network=NET, name=Name, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, \
+                    detach=True, \
+                    stdin_open=True, \
+                    tty=True, \
+                    privileged=True, \
+                    dns=['127.0.0.1'], \
+                    ports=Port_Dict, \
+                    network=NET, \
+                    name=Name, \
+                    hostname=HOSTNAME)
         except:
             return False, f'Failed to run container {Name}: ' + str(sys.exc_info()[1])
     elif PORTS is None and VOLS is not None:
@@ -112,14 +129,33 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
         if not Vol_Dict[0]:
             return False, Vol_Dict[1]
         try:
-            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, volumes=Vol_Dict, network=NET, name=NAME, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, \
+                    detach=True, \
+                    stdin_open=True, \
+                    tty=True, \
+                    privileged=True, \
+                    dns=['127.0.0.1'], \
+                    volumes=Vol_Dict, \
+                    network=NET, \
+                    name=NAME, \
+                    hostname=HOSTNAME)
         except:
             return False, f'Failed to run {NAME}: ' + str(sys.exc_info()[1])
     else:
         Port_Dict = gen_ports(PORTS)
         Vol_Dict = gen_vols(VOLS)
         try:
-            run_results = client.containers.run(IMAGE, detach=True, stdin_open=True, tty=True, privileged=True, ports=Port_Dict, volumes=Vol_Dict, network=NET, name=NAME, hostname=HOSTNAME)
+            run_results = client.containers.run(IMAGE, \
+                    detach=True, \
+                    stdin_open=True, \
+                    tty=True, \
+                    privileged=True, \
+                    dns=['127.0.0.1'], \
+                    ports=Port_Dict, \
+                    volumes=Vol_Dict, \
+                    network=NET, \
+                    name=NAME, \
+                    hostname=HOSTNAME)
         except:
             return False, f'Failed to run container {NAME}: ' + str(sys.exc_info()[1])
     if not client.containers.list(filters={'name': NAME}):
