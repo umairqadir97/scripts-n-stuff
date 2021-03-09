@@ -4,7 +4,7 @@
 # Required Packages: python 3.9, docker 20, pip3
 # Required Python Modules: docker
 # Required Files: custom_docker_modules.py, genpass.py, log.py, ipa.Dockerfile, parameters.yaml
-# Modified for use with "gold" ubuntu AMI (old python)
+# Modified for Ubuntu AMI "gold" imageas (old python)
 
 # Import Common Modules
 import os, sys, yaml
@@ -23,7 +23,7 @@ Log_File = 'ipa.log'
 IPA_Net = 'ipanet'
 
 # Grab Parameter File Data
-parameters = yaml.load(open(r'%s' %Parameter_File))
+parameters = yaml.full_load(open(r'%s' %Parameter_File))
 
 # Populate Custom Variables
 Image_Version = parameters['Container_Image']
@@ -106,7 +106,7 @@ if not os.path.exists(Password_File):
     Get_DM = genpass.encrypt_password(genpass.random_characters(24))
     yaml.dump({'admin': {'lock': Get_Admin[0], 'key': Get_Admin[1]}}, open(Password_File, 'w'))
     yaml.dump({'directorymanager': {'lock': Get_DM[0], 'key': Get_DM[1]}}, open(Password_File, 'a'))
-Read_Yaml = yaml.load(open(Password_File, 'r'))
+Read_Yaml = yaml.full_load(open(Password_File, 'r'))
 Admin_Block = Read_Yaml['admin']
 DM_Block = Read_Yaml['directorymanager']
 Admin_Password = genpass.decrypt_password(Admin_Block['lock'], Admin_Block['key'])
