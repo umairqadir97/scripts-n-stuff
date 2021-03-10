@@ -1,6 +1,6 @@
 # Python 3.9
 # Custom modules for docker things
-# Requires: Dockerfile, docker, python3
+# Requires: Dockerfile, docker, docker.io, python3
 
 # Import common modules
 import sys, docker
@@ -19,10 +19,10 @@ def check_image(IMAGE):
     try:
         Check_Result = client.images.list(IMAGE)
     except:
-        return False, f'Failed to check for image {IMAGE}: ' + str(sys.exc_info()[1])
+        return False, 'Failed to check for image {}: '.format(IMAGE) + str(sys.exc_info()[1])
     if not Check_Result:
-        return False, f'Image {IMAGE} not found in local cache'
-    return True, f'Image {IMAGE} already in local cache'
+        return False, 'Image {} not found in local cache'.format(IMAGE)
+    return True, 'Image {} already in local cache'.format(IMAGE)
 
 # Create image
 def build_image(FILE, TAG, PATH):
@@ -35,8 +35,8 @@ def build_image(FILE, TAG, PATH):
     try:
         client.images.build(dockerfile = FILE, tag = TAG, path = PATH)
     except:
-        return False, f'Failed to build image {TAG}: ' + str(sys.exc_info()[1])
-    return True, f'Built image {TAG}'
+        return False, 'Failed to build image {}: '.format(TAG) + str(sys.exc_info()[1])
+    return True, 'Built image {}'.format(TAG)
 
 # Check for and create network
 def create_net(NAME, DRIVER, SCOPE, IPV6 = None):
@@ -53,21 +53,21 @@ def create_net(NAME, DRIVER, SCOPE, IPV6 = None):
     except docker.errors.NotFound:
         Check_Net = 'Create'
     except:
-        return False, f'Failed to check for network {NAME}: ' + str(sys.exc_info()[1])
+        return False, 'Failed to check for network {}: '.format(NAME) + str(sys.exc_info()[1])
     else:
-        return True, f'Network {NAME} exists, skipping create'
+        return True, 'Network {} exists, skipping create'.format(NAME)
     if Check_Net == 'Create':
         if IPV6 is None:
             try:
                 Create_Net = client.networks.create(NAME, driver=DRIVER, scope=SCOPE)
             except:
-                return False, f'Failed to create network {NAME}: ' + str(sys.exc_info()[1])
+                return False, 'Failed to create network {}: '.format(NAME) + str(sys.exc_info()[1])
         else:
             try:
                 Create_Net = client.networks.create(NAME, driver=DRIVER, enable_ipv6=IPV6, ipam=Ipam_Config, scope=SCOPE)
             except:
-                return False, f'Failed to create network {NAME} with ipv6: ' + str(sys.exc_info()[1])
-        return True, f'Created network {NAME}'
+                return False, 'Failed to create network {} with ipv6: '.format(NAME) + str(sys.exc_info()[1])
+        return True, 'Created network {}'.format(NAME)
 
 # Run container
 def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
@@ -90,7 +90,7 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
         for ITEM in LIST:
             ITEM = ITEM.split(':')
             if len(ITEM) > 3:
-                return False, f'Too many values in container run volume option: {ITEM}'
+                return False, 'Too many values in container run volume option: {}'.format(ITEM)
             elif len(ITEM) == 3:
                 gen_dict[ITEM[0]] = {'bind': ITEM[1], 'mode': ITEM[2]}
             else:
@@ -105,10 +105,10 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     privileged=True, \
                     dns=['127.0.0.1'], \
                     network=NET, 
-                    name=NAME, \
+                    name=Name, \
                     hostname=HOSTNAME)
         except:
-            return False, f'Failed to run container {NAME}: ' + str(sys.exc_info()[1])
+            return False, 'Failed to run container {}: '.format(NAME) + str(sys.exc_info()[1])
     elif PORTS is not None and VOLS is None:
         Port_Dict = gen_ports(PORTS)
         try:
@@ -120,10 +120,10 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     dns=['127.0.0.1'], \
                     ports=Port_Dict, \
                     network=NET, \
-                    name=NAME, \
+                    name=Name, \
                     hostname=HOSTNAME)
         except:
-            return False, f'Failed to run container {NAME}: ' + str(sys.exc_info()[1])
+            return False, 'Failed to run container {}: '.format(NAME) + str(sys.exc_info()[1])
     elif PORTS is None and VOLS is not None:
         Vol_Dict = gen_vols(VOLS)
         if not Vol_Dict[0]:
@@ -140,7 +140,7 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     name=NAME, \
                     hostname=HOSTNAME)
         except:
-            return False, f'Failed to run {NAME}: ' + str(sys.exc_info()[1])
+            return False, 'Failed to run {}: '.format(NAME) + str(sys.exc_info()[1])
     else:
         Port_Dict = gen_ports(PORTS)
         Vol_Dict = gen_vols(VOLS)
@@ -157,21 +157,21 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     name=NAME, \
                     hostname=HOSTNAME)
         except:
-            return False, f'Failed to run container {NAME}: ' + str(sys.exc_info()[1])
+            return False, 'Failed to run container {}: '.format(NAME) + str(sys.exc_info()[1])
     if not client.containers.list(filters={'name': NAME}):
-        return False, f'Container {NAME} was NOT created!'
-    return True, f'Container {NAME} has been created'
+        return False, 'Container {} was NOT created!'.format(NAME)
+    return True, 'Container {} has been created'.format(NAME)
 
 # Check container status
 def get_status(NAME):
     try:
         Target_Container = client.containers.get(NAME)
     except:
-        return False, f'Failed to get target container: ' + str(sys.exc_info()[1])
+        return False, 'Failed to get target container: ' + str(sys.exc_info()[1])
     try:
         Container_Status = Target_Container.status
     except:
-        return False, f'Failed to get container status: ' + str(sys.exc_info()[1])
+        return False, 'Failed to get container status: ' + str(sys.exc_info()[1])
     return True, Container_Status
 
 # Execute Command on container
@@ -185,11 +185,11 @@ def send_command(NAME, COMMAND):
     try:
         Target_Container = client.containers.get(NAME)
     except:
-        return False, f'Failed to get target container: ' + str(sys.exc_info()[1])
+        return False, 'Failed to get target container: ' + str(sys.exc_info()[1])
     try:
         Command_Output = Target_Container.exec_run(COMMAND)
     except:
-        return False, f'Failed to run command on {NAME}: ' + str(sys.exc_info()[1])
+        return False, 'Failed to run command on {}: '.format(NAME) + str(sys.exc_info()[1])
     if Command_Output[0] != 0:
         return False, Command_Output
     return True, Command_Output

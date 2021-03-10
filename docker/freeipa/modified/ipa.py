@@ -1,10 +1,9 @@
 # python 3.9
 # This script is intended to build an IPA server in a docker container
 # EC2 Instance Host: IAM Role plume-ec2-default
-# Required Packages: python 3.9, docker 20, pip3
+# Required Packages: python 3.9, docker 20, docker.io, pip3
 # Required Python Modules: docker
 # Required Files: custom_docker_modules.py, genpass.py, log.py, ipa.Dockerfile, parameters.yaml
-# Modified for Ubuntu AMI "gold" imageas (old python)
 
 # Import Common Modules
 import os, sys, yaml
@@ -23,7 +22,7 @@ Log_File = 'ipa.log'
 IPA_Net = 'ipanet'
 
 # Grab Parameter File Data
-parameters = yaml.full_load(open(r'%s' %Parameter_File))
+parameters = yaml.load(open(r'%s' %Parameter_File))
 
 # Populate Custom Variables
 Image_Version = parameters['Container_Image']
@@ -40,11 +39,11 @@ Realm_KRB = Zone_Fwd_DNS.upper()
 IPA_Master_FQDN = parameters['Master_Nodes']['MASTER_1'][0] + '.' + Zone_Fwd_DNS
 
 # Create Hosts Block
-Hosts_Block = f'\\n# IPA Cluster Block'
+Hosts_Block = '\\n# IPA Cluster Block'
 for NODE in parameters['Master_Nodes'], parameters['Satellite_Nodes']:
     for KEY in NODE.keys():
         if NODE[KEY][0] != Host_Shortname:
-            Hosts_Block += f'\\n{NODE[KEY][1]}\\t{NODE[KEY][0]}.{Domain_Name} {NODE[KEY][0]}'
+            Hosts_Block += '\\n{a}\\t{b}.{c} {d}'.format(a=NODE[KEY][1],b=NODE[KEY][0],c=Domain_Name,d=NODE[KEY][0])
 
 # Set Up Modules
 log = LOG('IPA_Logger', Log_File, 'critical', 'info')
@@ -88,17 +87,17 @@ if not container_status[0]:
     log.critical(container_status)
     sys.exit(1)
 elif container_status[1] != 'running':
-    log.critical(f'Container status: {container_status}')
+    log.critical('Container status: {}'.format(container_status))
     sys.exit(1)
 else:
-    log.info(f'Container is running')
+    log.info('Container is running')
 
 ##-update hosts file
-command_result = CDM.send_command(Host_Shortname, f'bash -c \'echo -e "{Hosts_Block}" >> /etc/hosts\'')
+command_result = CDM.send_command(Host_Shortname, 'bash -c \'echo -e "{}" >> /etc/hosts\''.format(Hosts_Block))
 if command_result[0]:
-    log.info(f'Hosts file successfully written')
+    log.info('Hosts file successfully written')
 else:
-    log.warning(f'Could not write to hosts file: ' + command_result[1][1])
+    log.warning('Could not write to hosts file: ' + command_result[1][1])
 
 ##-generate and encrypt passwords, save encrypted passwords to local file
 if not os.path.exists(Password_File):
@@ -106,7 +105,7 @@ if not os.path.exists(Password_File):
     Get_DM = genpass.encrypt_password(genpass.random_characters(24))
     yaml.dump({'admin': {'lock': Get_Admin[0], 'key': Get_Admin[1]}}, open(Password_File, 'w'))
     yaml.dump({'directorymanager': {'lock': Get_DM[0], 'key': Get_DM[1]}}, open(Password_File, 'a'))
-Read_Yaml = yaml.full_load(open(Password_File, 'r'))
+Read_Yaml = yaml.load(open(Password_File, 'r'))
 Admin_Block = Read_Yaml['admin']
 DM_Block = Read_Yaml['directorymanager']
 Admin_Password = genpass.decrypt_password(Admin_Block['lock'], Admin_Block['key'])
@@ -136,7 +135,7 @@ if Host_Shortname == parameters['Master_Nodes']['MASTER_1'][0]:
         elif OPT.split('=')[0] == 'hostname':
             Install_Command += '--' + OPT.replace('VAL', IPA_Master_FQDN) + ' '
         elif OPT.split('=')[0] == 'ds-password':
-            Install_Command += '--' + OPT.replace('VAL', f'\"{DM_Password}\"') + ' '
+            Install_Command += '--' + OPT.replace('VAL', '\"{}\"'.format(DM_Password)) + ' '
         else:
             Install_Command += '--' + OPT + ' '
 elif Host_Shortname == parameters['Master_Nodes']['MASTER_2'][0]:
@@ -163,13 +162,13 @@ for OPT in parameters['IPA_Install_Options']:
     if OPT.split('=')[0] == 'domain':
         Install_Command += '--' + OPT.replace('VAL', Zone_Fwd_DNS) + ' '
     elif OPT.split('=')[0] == 'admin-password':
-        Install_Command += '--' + OPT.replace('VAL', f'\"{Admin_Password}\"')
+        Install_Command += '--' + OPT.replace('VAL', '\"{}\"'.format(Admin_Password))
     else:
         Install_Command += '--' + OPT + ' '
 Install_Command += '\''
 command_result = CDM.send_command(Host_Shortname, Install_Command)
-log.info(f'INSTALL COMMAND: {Install_Command}')
+log.info('INSTALL COMMAND: {}'.format(Install_Command))
 if command_result[0]:
     log.info('IPA has been successfully installed')
 else:
-    log.warning(f'IPA failed to install: ' + str(command_result[1]))
+    log.warning('IPA failed to install: ' + str(command_result[1]))

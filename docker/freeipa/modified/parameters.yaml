@@ -54,7 +54,7 @@ Client_Nodes:
     - '172.18.1.32'
 
 # Define IPA Image
-Container_Image: 'ipa:2.0'
+Container_Image: 'ipa:1.0'
 Docker_File: 'ipa.Dockerfile'
 Password_File: 'auth.yaml'
 
