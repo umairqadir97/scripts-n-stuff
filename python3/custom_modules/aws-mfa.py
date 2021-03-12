@@ -1,16 +1,11 @@
 # Python 3.9
 # Grab MFA tokens and set up temporary session
 # Lucas Rountree, Feb 2021
-# Requires: python 3.9, boto3 (pip install boto3), custom log.py module
+# Requires: python 3.9, boto3 (pip3 install boto3)
 
 # Import Common Modules
 import sys, boto3
 from subprocess import run
-
-# Import Custom Modules
-#from log import LOG
-
-#Log_File = '/var/log/aws_mfa.log'
 
 # Function to set up boto3 session
 def set_session(ACCOUNT):
@@ -23,9 +18,6 @@ def set_session(ACCOUNT):
         print(sys.exc_info()[1])
         sys.exit(1)
     return session
-
-# Set Up Commands
-#log = LOG('MFA_LOGGER', Log_File, 'critical', 'info')
 
 # Function to grab MFA device ARN and generate creds
 def get_creds(TOKEN, USER, ACCOUNT):
