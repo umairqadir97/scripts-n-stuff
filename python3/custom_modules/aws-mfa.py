@@ -65,23 +65,23 @@ def set_creds(User_Name, Device_Token, AWS_Account, MFA_Profile = 'aws-mfa', REG
         sys.exit(1)
     Key_ID, Secret_Key, Session_Token, Credential_Experation = AWS_Creds[1].values()
     try:
-        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_access_key_id', f'{Key_ID}'])
+        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_access_key_id', Key_ID])
     except:
         print(sys.exc_info()[1])
     try:
-        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_secret_access_key', f'{Secret_Key}'])
+        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_secret_access_key', Secret_Key])
     except:
         print(sys.exc_info()[1])
     try:
-        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_session_token', f'{Session_Token}'])
+        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.aws_session_token', Session_Token])
     except:
         print(sys.exc_info()[1])
     try:
-        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.region', f'{REGION}'])
+        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.region', REGION])
     except:
         print(sys.exc_info()[1])
     try:
-        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.output', f'{OUTPUT}'])
+        run(['aws', 'configure', 'set', f'profile.{MFA_Profile}.output', OUTPUT])
     except:
         print(sys.exc_info()[1])
 
@@ -91,7 +91,7 @@ def set_creds(User_Name, Device_Token, AWS_Account, MFA_Profile = 'aws-mfa', REG
 # Run as script
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Generate MFA credentials for AWS', prog='set_creds')
+    parser = argparse.ArgumentParser(description='Generate MFA credentials for AWS', prog='aws-mfa')
     parser.add_argument('-u', action='store', required=True, type=str, help='IAM username')
     parser.add_argument('-t', action='store', required=True, type=str, help='MFA device token')
     parser.add_argument('-a', action='store', required=True, type=str, help='AWS account name')
