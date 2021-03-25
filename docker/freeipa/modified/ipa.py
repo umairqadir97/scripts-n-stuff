@@ -92,12 +92,12 @@ elif container_status[1] != 'running':
 else:
     log.info('Container is running')
 
-##-update hosts file
-command_result = CDM.send_command(Host_Shortname, 'bash -c \'echo -e "{}" >> /etc/hosts\''.format(Hosts_Block))
-if command_result[0]:
-    log.info('Hosts file successfully written')
-else:
-    log.warning('Could not write to hosts file: ' + command_result[1][1])
+##-update hosts file: not currently implemented
+#command_result = CDM.send_command(Host_Shortname, 'bash -c \'echo -e "{}" >> /etc/hosts\''.format(Hosts_Block))
+#if command_result[0]:
+#    log.info('Hosts file successfully written')
+#else:
+#    log.warning('Could not write to hosts file: ' + command_result[1][1])
 
 ##-generate and encrypt passwords, save encrypted passwords to local file
 if not os.path.exists(Password_File):
