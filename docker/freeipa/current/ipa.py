@@ -7,7 +7,7 @@
 
 # Import Common Modules
 import os, sys, yaml
-from subprocess import run
+from subprocess import run, PIPE
 
 # Import Custom Modules
 from log import LOG
@@ -15,7 +15,6 @@ import genpass
 import custom_docker_modules as CDM
 
 # Set Up Generic Variables
-#Host_IP = run(['hostname', '-i']).stdout
 Context_Path = '.'
 Parameter_File = 'parameters.yaml'
 Log_File = 'ipa.log'
@@ -37,13 +36,7 @@ Zone_Rev_IP = parameters['Zone_Rev_IP']
 Zone_Fwd_DNS = parameters['Zone_Fwd_DNS']
 Realm_KRB = Zone_Fwd_DNS.upper()
 IPA_Master_FQDN = parameters['Master_Nodes']['MASTER_1'][0] + '.' + Zone_Fwd_DNS
-
-# Create Hosts Block
-Hosts_Block = f'\\n# IPA Cluster Block'
-for NODE in parameters['Master_Nodes'], parameters['Satellite_Nodes']:
-    for KEY in NODE.keys():
-        if NODE[KEY][0] != Host_Shortname:
-            Hosts_Block += f'\\n{NODE[KEY][1]}\\t{NODE[KEY][0]}.{Domain_Name} {NODE[KEY][0]}'
+Name_Server = ' '.join(run(['grep', 'nameserver', '/etc/resolv.conf'], stdout=PIPE).stdout.decode().split()[0:])
 
 # Set Up Modules
 log = LOG('IPA_Logger', Log_File, 'critical', 'info')
@@ -92,12 +85,12 @@ elif container_status[1] != 'running':
 else:
     log.info(f'Container is running')
 
-##-update hosts file
-command_result = CDM.send_command(Host_Shortname, f'bash -c \'echo -e "{Hosts_Block}" >> /etc/hosts\'')
+##-modify resolv.conf
+command_result = CDM.send_command(Host_Shortname, 'bash -c \'echo -e "{}" >> /etc/resolv.conf\''.format(Name_Server))
 if command_result[0]:
-    log.info(f'Hosts file successfully written')
+    log.info('resolv.conf file successfully written')
 else:
-    log.warning(f'Could not write to hosts file: ' + command_result[1][1])
+    log.warning('could not write to resolv.conf file')
 
 ##-generate and encrypt passwords, save encrypted passwords to local file
 if not os.path.exists(Password_File):

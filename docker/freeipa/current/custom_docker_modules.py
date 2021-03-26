@@ -4,6 +4,7 @@
 
 # Import common modules
 import sys, docker
+from subprocess import run, PIPE
 
 # Set up variables
 
@@ -79,6 +80,8 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
           '/source/path:/dest/path:opts', seperated by commas
     '''
     NAME = HOSTNAME.split('.')[0]
+    DOMAIN = '.'.join(HOSTNAME.split('.')[1:])
+    NAMESERVER = run(['grep', 'nameserver', '/etc/resolv.conf'], stdout=PIPE).stdout.decode().split()[1]
     def gen_ports(LIST):
         gen_dict = {}
         for ITEM in LIST:
@@ -103,7 +106,8 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     stdin_open=True, \
                     tty=True, \
                     privileged=True, \
-                    dns=['127.0.0.1'], \
+                    dns=[NAMESERVER], \
+                    dns_search=[DOMAIN], \
                     network=NET, 
                     name=NAME, \
                     hostname=HOSTNAME)
@@ -117,7 +121,8 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     stdin_open=True, \
                     tty=True, \
                     privileged=True, \
-                    dns=['127.0.0.1'], \
+                    dns=[NAMESERVER], \
+                    dns_search=[DOMAIN], \
                     ports=Port_Dict, \
                     network=NET, \
                     name=NAME, \
@@ -134,7 +139,8 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     stdin_open=True, \
                     tty=True, \
                     privileged=True, \
-                    dns=['127.0.0.1'], \
+                    dns=[NAMESERVER], \
+                    dns_search=[DOMAIN], \
                     volumes=Vol_Dict, \
                     network=NET, \
                     name=NAME, \
@@ -150,7 +156,8 @@ def run_container(HOSTNAME, IMAGE, NET='bridge', PORTS = None, VOLS = None):
                     stdin_open=True, \
                     tty=True, \
                     privileged=True, \
-                    dns=['127.0.0.1'], \
+                    dns=[NAMESERVER], \
+                    dns_search=[DOMAIN], \
                     ports=Port_Dict, \
                     volumes=Vol_Dict, \
                     network=NET, \

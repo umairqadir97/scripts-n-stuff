@@ -7,6 +7,7 @@ Volumes:
   - '/etc/localtime:/etc/localtime:ro'
   - '/etc/timezone:/etc/timezone:ro'
   - '/sys/fs/cgroup:/sys/fs/cgroup:ro'
+  - '/etc/resolv.conf:/etc/resolv.conf'
   - 'ipa-data:/data:Z'
 Ports:
   - '80/tcp:80'
