@@ -37,6 +37,9 @@ class create_tag:
 
    # Add tag to RDS resource
    def rds(self, ID):
+       '''
+       ID = RDS ARN
+       '''
         rds_client = session.client('rds')
         try:
             rds_client.add_tags_to_resource(ResourceName=ID, Tags=[{'Key': Tag_Key, 'Value': Tag_Value}])
@@ -250,4 +253,93 @@ class get_tags:
         asg_client = session.client('autoscaling')
         if TAG == 'ALL':
             try:
-                Tag_List = asg_client.
+                Tag_List = asg_client.describe_tags(Filters=[{'Name': 'auto-scaling-group', 'Values': [ID]}])['Tags']
+            except:
+                return False, str(sys.exc_info())
+            return True, Tag_List
+        else:
+            try:
+                Tag_Value = asg_client.describe_tags(Filters=[{'Name': 'auto-scaling-group', 'Values': [ID]}, {'Name': 'key', 'Values': [TAG]}])['Tags'][0]['Key']
+            except:
+                return False, str(sys.exc_info())
+            return True, Tag_Value
+
+    # get RDS tags
+    def rds(self, ID, TAG = 'ALL'):
+        '''
+        ID = RDS ARN
+        TAG = Tag key to get value for, use ALL to list all tag keys with values
+        '''
+        rds_client = session.client('rds')
+        try:
+            Tag_List = rds_client.list_tags_for_resource(ResourceName=ID)['TagList']
+        except:
+            return False, str(sys.exc_info())
+        if TAG == 'ALL':
+            return True, Tag_List
+        for ITEM in Tag_List:
+            if ITEM['Key'] == TAG:
+                Tag_Value = ITEM['Value']
+        if not Tag_Value:
+            return False, f'No Tag with key {TAG} found'
+        return True, Tag_Value
+
+    # get Elastic Load Balancer tags
+    def elb(self, ID, TAG = 'ALL'):
+        '''
+        ID = elastic load balancer ARN
+        TAG = Tag key to get value for, use ALL to list all tag keys with value
+        '''
+        elb_client = session.client('elbv2')
+        try:
+            Tag_List = elb_client.describe_tags(ResourceArns=[ID])['TagDescriptions'][0]['Tags']
+        except:
+            return False, str(sys.exc_info())
+        if TAG == 'ALL':
+            return True, Tag_List
+        for ITEM in Tag_List:
+             if ITEM['Key'] == TAG:
+                 Tag_Value = ITEM['Value']
+        if not Tag_Value:
+            return False, f'No Tag with key {TAG} found.'
+        return True, Tag_Value
+
+    # get DocumentDB tags
+    def ddb(self, ID, TAG = 'ALL'):
+        '''
+        ID = documentdb ARN
+        TAG = Tag key to get value for, use ALL to list all tag keys with value
+        '''
+        ddb_client = session.client('docdb')
+        try:
+            Tag_List = ddb_client.list_tags_for_resource(ResourceName=ID)['TagList']
+        except:
+            return False, str(sys.exc_info())
+        if TAG == 'ALL':
+            return True, Tag_List
+        for ITEM in Tag_List:
+            if ITEM['Key'] == TAG:
+                Tag_Value = ITEM['Value']
+        if not Tag_Value:
+            return False, f'No Tag with key {TAG} found.'
+        return True, Tag_Value
+
+    # get DynamoDB tags
+    def dynamo(self, ID, TAG = 'ALL'):
+        '''
+        ID = dynamodb ARN
+        TAG = Tag key to get value for, use ALL to list all tag keys with value
+        '''
+        dynamo_client = session.client('dynamodb')
+        try:
+            Tag_List = dynamo_client.list_tags_of_resource(ResourceArn=ID)['Tags']
+        except:
+            return False, str(sys.exc_info())
+        if TAG == 'ALL':
+            return True, Tag_List
+        for ITEM in Tag_List:
+            if ITEM['Key'] == TAG:
+                Tag_Value = ITEM['Value']
+            if not Tag_Value:
+                return False, f'No tag with key {TAG} found.'
+            return True, Tag_Value
