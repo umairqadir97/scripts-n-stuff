@@ -4,6 +4,7 @@
 
 # Import modules
 import boto3, botocore.exceptions, sys
+from general_modules import set_session
 
 # Set up class to create tags
 class create_tag:
@@ -229,15 +230,15 @@ def get_tags(TAG, Tag_List):
 
 # Set up class to get tags from resource
 class find_tags:
+    '''
+    This class contains functions to return tags for AWS resources.
+    Use: tag_modules.find_tags(session)
+    '''
 
-    def __init__(self, PROFILE, REGION, KEY = '', VALUE = ''):
+    def __init__(self, session, KEY = '', VALUE = ''):
         self.Tag_Key = KEY
         self.Tag_Value = VALUE
-        try:
-            self.session = boto3.Session(profile_name=PROFILE, region_name=REGION)
-        except:
-            print(sys.exc_info()[1])
-            sys.exit(1)
+        self.session = session
 
     # get EC2 tags
     def ec2(self, ID, TAG = 'ALL'):
