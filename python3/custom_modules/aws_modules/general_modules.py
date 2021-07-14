@@ -21,6 +21,16 @@ class ec2_get_info:
     def __init__(self, session):
         self.ec2_client = session.client('ec2')
 
+    def get_regions(self):
+        '''
+        Return a list of all regions
+        '''
+        try:
+            response = [X['RegionName'] for X in self.ec2_client.describe_regions()['Regions']]
+        except:
+            return False, str(sys.exc_info()[1])
+        return True, response
+
     def list_all_instances(self):
         '''
         Return a list of dictonary items containing name:id of all instances
@@ -61,6 +71,17 @@ class ec2_get_info:
         '''
         try:
             response = self.ec2_client.describe_instances(Filters=[{'Name': 'instance-id', 'Values': [ID]}])['Reservations']
+        except:
+            return False, str(sys.exc_info()[1])
+        return True, response
+
+    def instance_info_by_ip(self, IP):
+        '''
+        Return instance json by private IP
+        IP = private IP address
+        '''
+        try:
+            response = self.ec2_client.describe_instances(Filters=[{'Name': 'private-ip-address', 'Values': [IP]}])['Reservations']
         except:
             return False, str(sys.exc_info()[1])
         return True, response
@@ -110,6 +131,24 @@ class iam_get_info:
         except:
             return False, str(sys.exc_info()[1])
         return True, response
+
+class s3_get_info:
+    '''
+    s3 modules to pull info from resources
+    set session first, call iam with session:
+    session = general_modules.set_session(PROFILE, REGION)
+    s3 = general_modules.s3(session)
+    '''
+
+    def __init__(self, session):
+        self.s3_client = session.client('s3')
+
+    #def find_buckets(self, NAME = 'ALL')
+    #'''
+    #Return a list of buckets that match pattern NAME
+    #NAME = bucket name pattern to match, ALL to list all roles
+    #'''
+    #pass
 
 class ec2(ec2_get_info):
     
@@ -166,6 +205,20 @@ class ec2(ec2_get_info):
                 if 'PublicIpAddress' in INSTANCE:
                     ip.append(INSTANCE['PublicIpAddress'])
                 response.append(ip)
+        return True, response
+
+    def id_from_ip(self, IP):
+        '''
+        Return instance ID from private IP address
+        IP = private IP address
+        '''
+        instance_info = ec2_get_info(self.session).instance_info_by_ip(IP)
+        if not instance_info[0]:
+            return False, instance_info[1]
+        response = []
+        for ITEM in instance_info[1]:
+            for INSTANCE in ITEM['Instances']:
+                response.append(INSTANCE['InstanceId'])
         return True, response
 
     def key_pair(self, ID):
@@ -230,6 +283,25 @@ class iam(iam_get_info):
 
        return True, response[1]['Role']['Arn']
 
+class s3(s3_get_info):
+
+    def __init__(self, session):
+        s3_get_info.__init__(self, session)
+        self.session = session
+        self.s3_client = self.session.client('s3')
+
+    def change_lf(self, NAME):
+#        try:
+#            lf_config = open(FILE, 'r')
+#        except:
+#            return False, str(sys.exc_info()[1])
+        try:
+ #           response = self.s3_client.put_bucket_lifecycle_configuration(Bucket=NAME, LifecycleConfiguration=lf_config.read().rstrip('\n'))
+            response = self.s3_client.put_bucket_lifecycle_configuration(Bucket=NAME, LifecycleConfiguration={'Rules': [{'ID': 'theta_14d_lifecycle_policy','Prefix': '','Status': 'Enabled','Expiration': {'Days': 14},}]})
+        except:
+            return False, str(sys.exc_info()[1])
+#        lf_config.close()
+        return True, response
         
 # Run as a sript
 #if __name__ == '__main__':

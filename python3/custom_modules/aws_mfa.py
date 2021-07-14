@@ -44,7 +44,7 @@ def get_creds(TOKEN, USER, ACCOUNT, ROLE = False, SESSION = False):
     if ROLE:
         # Assume Role
         try:
-            AWS_Creds = sts.assume_role(RoleArn=ROLE, RoleSessionName=SESSION, DurationSeconds=3600)['Credentials']
+            AWS_Creds = sts.assume_role(RoleArn=ROLE, RoleSessionName=SESSION)['Credentials']
         except botocore.exceptions.ClientError as Error:
             if 'AccessDenied' in str(Error.args):
                 return False, f'User does not have permission to assume role {ROLE}'

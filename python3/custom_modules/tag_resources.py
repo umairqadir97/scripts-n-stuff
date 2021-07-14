@@ -1,11 +1,13 @@
 import boto3, botocore.exceptions, sys
 from ast import literal_eval
 
-Profile_Name = 'plume-dev-mfa'
+Profile_Name = 'plume-ops-mfa'
 Control_Key = 'costcenter'
-Control_Value = 'r+d'
+Control_Value = 'cogs'
+Jira_Id = 'IOPS-3806'
 Create_String = f'Creating tag {Control_Key}:{Control_Value} for'
-Region_List = ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2', 'ap-south-1', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-southeast-1', 'ap-southeast-2', 'ca-central-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'sa-east-1']
+Region_List = ['us-west-2', 'us-east-1']
+#Region_List = ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2', 'ap-south-1', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-southeast-1', 'ap-southeast-2', 'ca-central-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-north-1', 'sa-east-1']
 Alternate_Region_List = ['af-south-1', 'ap-east-1', 'eu-south-1', 'me-south-1']
 
 def set_session(PROFILE, REGION='us-west-2'):
@@ -63,12 +65,47 @@ def ec2_tags(REGION):
         else:
             print('Done.')
 
-#    print('ec2 instances in', REGION)
-#    for ITEM in ec2.describe_instances()['Reservations']:
-#        for ID in ITEM['Instances']:
-#            Instance_ID = ID['InstanceId']
-#        if not check_tags(ID, Control_Key, Control_Value):
-#            create_tag(Instance_ID, Control_Key, Control_Value)
+    print('ec2 launch templates in', REGION)
+    for ITEM in ec2.describe_launch_templates()['LaunchTemplates']:
+        ID = ITEM['LaunchTemplateId']
+        if not check_tags(ITEM, Control_Key, Control_Value):
+            create_tag(ID, Control_Key, Control_Value)
+        for X in ec2.describe_launch_template_versions(LaunchTemplateId=ID, Versions=['$Default'])['LaunchTemplateVersions']:
+            default_version = str(X['VersionNumber'])
+            try:
+                TAGS = X['LaunchTemplateData']['TagSpecifications']
+            except KeyError:
+                print('Launch Template', ID, 'has no tags, adding...')
+                TAGS = [{'ResourceType': 'instance', 'Tags': [{'Key': Control_Key, 'Value': 'TEMP'}]}]
+        new_temp = []
+        for X in TAGS:
+            for VAL in X['Tags']:
+                if VAL['Key'] == Control_Key:
+                    if VAL['Value'] != Control_Value:
+                        VAL['Value'] = Control_Value
+                        new_temp.append('true')
+                    else:
+                        new_temp.append('false')
+        if 'true' in new_temp:
+            print('Changing tag specification in Launch Template', ID, 'to', Control_Key + ':' + Control_Value)
+            try:
+                response = ec2.create_launch_template_version(LaunchTemplateId=ID, SourceVersion=default_version, VersionDescription=Jira_Id, LaunchTemplateData={'TagSpecifications': TAGS})
+            except:
+                print(sys.exc_info()[1])
+            version_number = str(response['LaunchTemplateVersion']['VersionNumber'])
+            print('Setting Launch Template version', version_number, 'as default for', ID)
+            try:
+                ec2.modify_launch_template(LaunchTemplateId=ID, DefaultVersion=version_number)
+            except:
+                print(sys.exc_info()[1])
+        else:
+            print('Skipping Launch Template', ID, 'tag value is correct.')
+    print('ec2 instances in', REGION)
+    for ITEM in ec2.describe_instances()['Reservations']:
+        for ID in ITEM['Instances']:
+            Instance_ID = ID['InstanceId']
+        if not check_tags(ID, Control_Key, Control_Value):
+            create_tag(Instance_ID, Control_Key, Control_Value)
     print('ec2 customer gateways in', REGION)
     for ITEM in ec2.describe_customer_gateways()['CustomerGateways']:
         if not check_tags(ITEM, Control_Key, Control_Value):
@@ -96,10 +133,6 @@ def ec2_tags(REGION):
     for ITEM in ec2.describe_images(Owners=['self'])['Images']:
         if not check_tags(ITEM, Control_Key, Control_Value):
             create_tag(ITEM['ImageId'], Control_Key, Control_Value)
-    print('ec2 launch templates in', REGION)
-    for ITEM in ec2.describe_launch_templates()['LaunchTemplates']:
-        if not check_tags(ITEM, Control_Key, Control_Value):
-            create_tag(ITEM['LaunchTemplateId'], Control_Key, Control_Value)
     print()
 
 def s3_tags():
@@ -411,7 +444,12 @@ def sqs_tags(REGION):
     else:
         for ITEM in URLS:
             TAGS = {'Tags': []}
-            for I in sqs.list_queue_tags(QueueUrl=ITEM)['Tags'].items():
+            sqs_queue = sqs.list_queue_tags(QueueUrl=ITEM)
+            if 'Tags' in sqs_queue:
+                sqs_tags = sqs_queue['Tags'].items()
+            else:
+                sqs_tags = {}
+            for I in sqs_tags:
                 TAGS['Tags'].append({'Key': I[0], 'Value': I[1]})
             if not check_tags(TAGS, Control_Key, Control_Value):
                 print(Create_String, ITEM)
@@ -441,7 +479,10 @@ def sns_tags(REGION):
             else:
                 print('Done.')
 
+
 for REGION in Region_List:
+
+    
 #    ec2 = set_session(Profile_Name, REGION).client('ec2')
 #    try:
 #        ec2.describe_instances(DryRun=True)
@@ -453,15 +494,16 @@ for REGION in Region_List:
 #        continue
 #    print(REGION)
     ec2_tags(REGION)
-    ddb_tags(REGION)
-    rds_tags(REGION)
+#    ddb_tags(REGION)
+#    rds_tags(REGION)
     elb_tags(REGION)
-    kms_tags(REGION)
-    dynamo_tags(REGION)
-    es_tags(REGION)
-    ecs_tags(REGION)
-    lambda_tags(REGION)
-    sqs_tags(REGION)
-    sns_tags(REGION)
+#    kms_tags(REGION)
+#    dynamo_tags(REGION)
+#    es_tags(REGION)
+#    ecs_tags(REGION)
+#    lambda_tags(REGION)
+#    sqs_tags(REGION)
+#    sns_tags(REGION)
+#    s3_tags()
 
-s3_tags()
+#s3_tags()
