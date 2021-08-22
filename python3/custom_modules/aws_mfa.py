@@ -2,6 +2,7 @@
 # Grab MFA tokens and set up temporary session
 # Lucas Rountree, Feb 2021
 # Requires: python 3.9, boto3 (pip3 install boto3)
+# Requires: yaml (pip3 install pyyaml)
 
 # Import Common Modules
 import sys, os, boto3, botocore, yaml
