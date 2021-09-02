@@ -77,13 +77,18 @@ class ec2_get_info:
 
     def instance_info_by_ip(self, IP):
         '''
-        Return instance json by private IP
+        Return instance json by private or public IP
         IP = private IP address
         '''
         try:
             response = self.ec2_client.describe_instances(Filters=[{'Name': 'private-ip-address', 'Values': [IP]}])['Reservations']
         except:
             return False, str(sys.exc_info()[1])
+        if not response:
+            try:
+                response = self.ec2_client.describe_instances(Filters=[{'Name': 'network-interface.association.public-ip', 'Values': [IP]}])['Reservations']
+            except:
+                return False, str(sys.exc_info()[1])
         return True, response
 
 class iam_get_info:
@@ -143,12 +148,51 @@ class s3_get_info:
     def __init__(self, session):
         self.s3_client = session.client('s3')
 
-    #def find_buckets(self, NAME = 'ALL')
-    #'''
-    #Return a list of buckets that match pattern NAME
-    #NAME = bucket name pattern to match, ALL to list all roles
-    #'''
-    #pass
+    def find_buckets(self, NAME = 'ALL'):
+        '''
+        Return a list of buckets that match pattern NAME
+        NAME = bucket name pattern to match, ALL to list all roles
+        '''
+        try:
+            Bucket_List = [X['Name'] for X in self.s3_client.list_buckets()['Buckets']]
+        except:
+            return False, str(sys.exc_info()[1])
+        if NAME == 'ALL':
+            return True, Bucket_List
+        else:
+            response = []
+            for X in Bucket_List:
+                if NAME in X:
+                    response.append(X)
+        if not response:
+            return False, response
+        return True, response
+
+    def prefix_list(self, BUCKET, PREFIX = False):
+        '''
+        Return a list of prefixes for a given bucket
+        BUCKET = S3 bucket name
+        PREFIX = Prefix to look in
+        '''
+        if PREFIX:
+            try:
+                Object_List = self.s3_client.list_objects(Bucket=BUCKET, Prefix=PREFIX)['Contents']
+            except:
+                return False, str(sys.exc_info()[1])
+        else:
+            try:
+                Object_List = self.s3_client.list_objects(Bucket=BUCKET)['Contents']
+            except:
+                return False, str(sys.exc_info()[1])
+        Prefix_List = []
+        for X in Object_List:
+            Object_Line = X['Key']
+            Object_Line = Object_Line.split(PREFIX + '/')[1]
+            prefix = Object_Line.split('/')[0]
+            if X['Key'].split(prefix)[1]:
+                if prefix not in Prefix_List:
+                    Prefix_List.append(prefix)
+        return True, Prefix_List
 
 class ec2(ec2_get_info):
     
@@ -209,7 +253,7 @@ class ec2(ec2_get_info):
 
     def id_from_ip(self, IP):
         '''
-        Return instance ID from private IP address
+        Return instance ID from private or public IP address
         IP = private IP address
         '''
         instance_info = ec2_get_info(self.session).instance_info_by_ip(IP)
