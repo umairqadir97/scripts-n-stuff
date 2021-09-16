@@ -234,7 +234,7 @@ class ec2(ec2_get_info):
     def ip(self, ID):
         '''
         Return IP addresses of instance by Name tag
-        NAME = Instance ID
+        ID = Instance ID
         '''
         instance_info = ec2_get_info(self.session).instance_info_by_id(ID)
         if not instance_info[0]:
@@ -253,8 +253,8 @@ class ec2(ec2_get_info):
 
     def id_from_ip(self, IP):
         '''
-        Return instance ID from private or public IP address
-        IP = private IP address
+        Return instance ID and Tag:Name from private or public IP address
+        IP = private/public IP address
         '''
         instance_info = ec2_get_info(self.session).instance_info_by_ip(IP)
         if not instance_info[0]:
@@ -263,6 +263,8 @@ class ec2(ec2_get_info):
         for ITEM in instance_info[1]:
             for INSTANCE in ITEM['Instances']:
                 response.append(INSTANCE['InstanceId'])
+                for TAG in INSTANCE['Tags']:
+                    if TAG['Key'] == 'Name':                                                                response.append(TAG['Value'])
         return True, response
 
     def key_pair(self, ID):
