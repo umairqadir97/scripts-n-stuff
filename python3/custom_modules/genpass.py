@@ -88,7 +88,7 @@ def encrypt_password(IN, KEY=None):
 def decrypt_password(IN, KEY):
     '''
     Decrypt a password using a provided fernet generated key.
-    gnepass.decrypt_password(KEY, IN)
+    gnepass.decrypt_password(IN, KEY)
     IN: Fernet encrypted password bytes to decrypt
     KEY: Key to decrypt password
     Output: Decrypted password in string format, False on failure
