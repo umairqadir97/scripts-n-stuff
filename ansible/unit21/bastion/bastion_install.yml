@@ -1,0 +1,223 @@
+---
+# Usage: ansible-playbook <path/filename> -k
+# Runs against IPs/Hostnames in hosts file
+#
+- hosts: bastion
+# Set Variables
+  vars:
+    domain_name: "unit21.ai"
+    host_fqdn: "{{ host_name }}.{{ domain_name }}"
+    psql_version: "12"
+    snowsql_url: "https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/"
+    snowsql_installer: "snowsql-1.2.9-linux_x86_64.bash"
+#
+# Config Block
+  gather_facts: True
+  remote_user: ubuntu
+  become: yes
+  become_user: root
+  become_method: sudo
+#
+# Run Tasks
+  tasks:
+
+    - name: Populate Service Facts
+      ansible.builtin.service_facts:
+
+    - name: Update Hosts File - Comment
+      lineinfile:
+        insertafter: EOF
+        create: yes
+        path: /etc/hosts
+        search_string: "Hostname Resolution"
+        line: "# Hostname Resolution"
+        state: present
+
+    - name: Update Hosts File - Host
+      lineinfile:
+        insertafter: "Hostname Resolution"
+        create: yes
+        path: /etc/hosts
+        search_string: "{{ private_ip }}"
+        line: "{{ private_ip }}\t{{ host_fqdn }}"
+        state: present
+
+    - name: Set Hostname
+      hostname:
+        name: "{{ host_fqdn }}"
+        use: systemd
+
+    - name: Check For and Install Updates
+      apt:
+        update_cache: yes
+        upgrade: full
+
+    - name: Install Vim
+      package:
+        name: vim
+        state: latest
+
+    - name: Install pip
+      package:
+        name: python3-pip
+        state: latest
+
+    - name: Install AWS CLI
+      package:
+        name: awscli
+        state: latest
+
+    - name: Install boto3 Module
+      package:
+        name: python3-boto3
+        state: latest
+
+    - name: Install botocore Module
+      package:
+        name: python3-botocore
+        state: latest
+
+    - name: Install OpenJDK
+      package:
+        name: default-jre
+        state: latest
+
+    - name: Install kafka
+      package:
+        name: librdkafka1
+        state: latest
+
+    - name: Install Redis
+      package:
+        name: redis
+        state: latest
+
+    - name: Install Redis Module
+      package:
+        name: python3-redis
+        state: latest
+
+    - name: Install ElasticSearch Module
+      package:
+        name: python3-elasticsearch
+        state: latest
+
+    - name: Install JQ
+      package:
+        name: jq
+        state: latest
+
+    - name: Install PSQL
+      package:
+        name: postgresql-client-{{ psql_version }}
+        state: latest
+
+    - name: Install zookeeperd
+      package:
+        name: zookeeperd
+        state: latest
+
+    - name: Install Celery Module
+      package:
+        name: python3-celery
+        state: latest
+
+    - name: Install Flower Module
+      shell:
+        cmd: pip3 install flower
+      args:
+        executable: /bin/bash
+      when: ansible_facts.services['flower.service'] is not defined
+
+    - name: Install psycopg2 Module
+      package:
+        name: python3-psycopg2
+        state: latest
+
+    - name: Install NFS Common
+      package:
+        name: nfs-common
+        state: latest
+
+    - name: Install LibNFS Utilities
+      package:
+        name: libnfs-utils
+        state: latest
+
+    - name: Install Unzip
+      package:
+        name: unzip
+        state: latest
+
+    - name: Check if SnowSQL Is Installed
+      stat:
+        path: /bin/snowsql
+      register: check_snowsql
+
+    - name: Download SnowSQL (Snowflake)
+      get_url:
+        url: "{{ snowsql_url }}{{ snowsql_installer }}"
+        dest: /tmp
+        mode: 0777
+      when: check_snowsql.stat.isreg is not defined
+
+    - name: Install SnowSQL (Snowflake)
+      shell: SNOWSQL_DEST="/bin" SNOWSQL_LOGIN_SHELL="/home/ubuntu/.profile" bash "/tmp/{{ snowsql_installer }}"
+      args:
+        executable: /bin/bash
+      when: check_snowsql.stat.isreg is not defined
+# 
+# Configure Services
+    - name: Set Up Flower Service
+      template:
+        src: "flower.service"
+        dest: /etc/systemd/system/flower.service
+      notify:
+      - restart systemd
+      - restart flower
+#
+# Create Directories and Files
+    - name: Create app and cronjobs Directory
+      file:
+        path: /opt/app/cronjobs
+        state: directory
+        recurse: yes
+        mode: 0777
+
+    - name: Create Secrets Bash File
+      template:
+        src: "secrets.sh"
+        dest: /opt/app/cronjobs/secrets.sh
+        mode: 0777
+
+    - name: Create Celery Flower Directory
+      file:
+        path: /home/ubuntu/celery-flower
+        state: directory
+        mode: 0774
+
+    - debug:
+        msg: Flower service is RUNNING.
+      when: ansible_facts.services['flower.service']['state'] == 'running'
+
+    - debug:
+        msg: Flower service is NOT running!
+      when: ansible_facts.services['flower.service']['state'] != 'running'
+#
+# Set Up Github Repos and Actions
+#
+# Set Up Monitoring
+#
+# Handlers
+  handlers:
+    
+    - name: restart flower
+      service:
+        name: flower
+        state: restarted
+
+    - name: restart systemd
+      service:
+        name: daemon-reload
+        state: restarted
+
