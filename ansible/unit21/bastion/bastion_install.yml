@@ -13,14 +13,15 @@
 #
 # Config Block
   gather_facts: True
-  remote_user: ubuntu
-  become: yes
-  become_user: root
-  become_method: sudo
+  remote_user: {{ user }}
+#  become: yes
+#  become_user: root
+#  become_method: sudo
 #
-# Run Tasks
+## Run Tasks
   tasks:
-
+#
+# Initial Setup
     - name: Populate Service Facts
       ansible.builtin.service_facts:
 
@@ -52,6 +53,69 @@
         update_cache: yes
         upgrade: full
 
+    - name: Create GitHub Group
+      group:
+        name: git
+        state: present
+
+    - name: Add User to Git Group
+      user:
+        name: {{ user }}
+        groups: admin,git
+        append: yes
+
+#
+# Create Directories and Files
+    - name: Create app and cronjobs Directory
+      file:
+        path: /opt/app/cronjobs
+        state: directory
+        recurse: yes
+        owner: {{ user }}
+        group: admin
+        mode: 0777
+
+    - name: Create Secrets Bash File
+      template:
+        src: "secrets.sh"
+        dest: /opt/app/cronjobs/secrets.sh
+        owner: {{ user }}
+        group: admin
+        mode: 0777
+
+    - name: Create Celery Flower Directory
+      file:
+        path: /home/ubuntu/celery-flower
+        state: directory
+        owner: {{ user }}
+        group: {{ user }}
+        mode: 0774
+
+    - name: Create Snowsql Directory
+      file:
+        path: /home/ubuntu/.snowsql
+        state: directory
+        owner: {{ user }}
+        group: {{ user }}
+        mode: 0770
+
+    - name: Create Snowsql Config File
+      template:
+        src: "snowsql.config"
+        dest: /home/ubuntu/.snowsql/config
+        owner: {{ user }}
+        group: {{ user }}
+        mode: 0770
+
+    - name: Create Unit21 GitHub Directory
+      file:
+        path: /opt/app/unit21-github
+        state: directory
+        owner: {{ user }}
+        group: git
+        mode: 0774
+#
+# Package Management
     - name: Install Vim
       package:
         name: vim
@@ -149,6 +213,11 @@
         name: unzip
         state: latest
 
+    - name: Install Git
+      package:
+        name: git
+        state: latest
+
     - name: Check if SnowSQL Is Installed
       stat:
         path: /bin/snowsql
@@ -175,27 +244,28 @@
       notify:
       - restart systemd
       - restart flower
+
+    - name: Clone Bastion-Cronjobs Repo
+      git:
+        key_file: FILE
+        clone: yes
+        repo: git@github.com:u21/bastion-cronjobs.git
+        dest: /opt/app/unit21-git
+        update: yes
+
+    - name: Grab Cronjobs
+      find:
+        paths: /opt/app/unit21-git
+      register: find
+
+    - name: Symlink Cronjobs
+      file:
+        src: "{{ item.path }}"
+        path: "/opt/app/cronjobs/{{ item.path | basename }}"
+        state: link
+      with_items: "{{ find.results.files }}"
 #
-# Create Directories and Files
-    - name: Create app and cronjobs Directory
-      file:
-        path: /opt/app/cronjobs
-        state: directory
-        recurse: yes
-        mode: 0777
-
-    - name: Create Secrets Bash File
-      template:
-        src: "secrets.sh"
-        dest: /opt/app/cronjobs/secrets.sh
-        mode: 0777
-
-    - name: Create Celery Flower Directory
-      file:
-        path: /home/ubuntu/celery-flower
-        state: directory
-        mode: 0774
-
+# Check Services
     - debug:
         msg: Flower service is RUNNING.
       when: ansible_facts.services['flower.service']['state'] == 'running'
@@ -208,7 +278,7 @@
 #
 # Set Up Monitoring
 #
-# Handlers
+# Set Handlers
   handlers:
     
     - name: restart flower

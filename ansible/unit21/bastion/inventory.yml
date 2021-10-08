@@ -11,7 +11,10 @@ all:
           celery_redis_host: dev-redis-celery.axidgf.0001.usw2.cache.amazonaws.com
           influx_token: TEMP
           influx_bucket: unit21-test-2
-          pgsql_url: TEMP-need-to-remove-password
+          pgsql_url: dev-hogwarts-aurora-cluster-pensieve-reader-0.cagb6vynacvu.us-west-2.rds.amazonaws.com
+          pgsql_port: 5432
+          pgsql_db: pgpark
+          pgsql_user: app_monitoring
           msk_url: TEMP
           path_to_redis_cli: redis-cli
           es_url: https://vpc-dev-hogwarts-pensieve-x7xq23o56aozcpgu5n6oczwshi.us-west-2.es.amazonaws.com:443
