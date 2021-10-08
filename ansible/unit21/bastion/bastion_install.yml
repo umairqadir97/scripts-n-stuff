@@ -13,10 +13,10 @@
 #
 # Config Block
   gather_facts: True
-  remote_user: {{ user }}
-#  become: yes
+  remote_user: "{{ user }}"
+  become: yes
 #  become_user: root
-#  become_method: sudo
+  become_method: sudo
 #
 ## Run Tasks
   tasks:
@@ -60,7 +60,7 @@
 
     - name: Add User to Git Group
       user:
-        name: {{ user }}
+        name: "{{ user }}"
         groups: admin,git
         append: yes
 
@@ -71,7 +71,7 @@
         path: /opt/app/cronjobs
         state: directory
         recurse: yes
-        owner: {{ user }}
+        owner: "{{ user }}"
         group: admin
         mode: 0777
 
@@ -79,7 +79,7 @@
       template:
         src: "secrets.sh"
         dest: /opt/app/cronjobs/secrets.sh
-        owner: {{ user }}
+        owner: "{{ user }}"
         group: admin
         mode: 0777
 
@@ -87,33 +87,48 @@
       file:
         path: /home/ubuntu/celery-flower
         state: directory
-        owner: {{ user }}
-        group: {{ user }}
+        owner: "{{ user }}"
+        group: "{{ user }}"
         mode: 0774
 
     - name: Create Snowsql Directory
       file:
         path: /home/ubuntu/.snowsql
         state: directory
-        owner: {{ user }}
-        group: {{ user }}
+        owner: "{{ user }}"
+        group: "{{ user }}"
         mode: 0770
 
     - name: Create Snowsql Config File
       template:
-        src: "snowsql.config"
+        src: "snowsql.conf"
         dest: /home/ubuntu/.snowsql/config
-        owner: {{ user }}
-        group: {{ user }}
-        mode: 0770
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: 0660
 
     - name: Create Unit21 GitHub Directory
       file:
         path: /opt/app/unit21-github
         state: directory
-        owner: {{ user }}
+        owner: "{{ user }}"
         group: git
         mode: 0774
+
+    - name: Upload GitHub Key
+      template:
+        src: "bastion_cronjobs.priv"
+        dest: /home/ubuntu/.ssh/bastion_cronjobs.priv
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: 0600
+
+    - name: Configure Unit21 GitHub SSH
+      blockinfile:
+        create: yes
+        path: /home/ubuntu/.ssh/config
+        block: "host unit21.git\n\tHostName github.com\n\tIdentityFile ~/.ssh/bastion_cronjobs.priv\n\tForwardAgent yes"
+        state: present
 #
 # Package Management
     - name: Install Vim
@@ -246,16 +261,20 @@
       - restart flower
 
     - name: Clone Bastion-Cronjobs Repo
+      become: no
       git:
-        key_file: FILE
+#        key_file: /home/ubuntu/.ssh/bastion_cronjobs.priv
+        ssh_opts: "-F /home/ubuntu/.ssh/config"
         clone: yes
-        repo: git@github.com:u21/bastion-cronjobs.git
-        dest: /opt/app/unit21-git
+        repo: git@unit21.git:u21/bastion-cronjobs.git
+        version: master
+        accept_hostkey: yes
+        dest: /opt/app/unit21-github/bastion-cronjobs
         update: yes
 
     - name: Grab Cronjobs
       find:
-        paths: /opt/app/unit21-git
+        paths: /opt/app/unit21-github/bastion_cronjobs/cronjobs
       register: find
 
     - name: Symlink Cronjobs
@@ -263,7 +282,7 @@
         src: "{{ item.path }}"
         path: "/opt/app/cronjobs/{{ item.path | basename }}"
         state: link
-      with_items: "{{ find.results.files }}"
+      with_items: "{{ find.files }}"
 #
 # Check Services
     - debug:
