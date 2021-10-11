@@ -1,0 +1,34 @@
+---
+# Ansible playbook to fetch/pull the bastion_cronjobs repo
+# Usage: ansible-playbook -i inventory.yml bastion_gitpull.yml
+# Usage: ansible-playbook <path/filename> -k
+# Runs against IPs/Hostnames in hosts file
+#
+- hosts: bastion
+# Set Variables
+  vars:
+    domain_name: "unit21.ai"
+    host_fqdn: "{{ host_name }}.{{ domain_name }}"
+    appdir_path: "/opt/app"
+    cronjobs_path: "{{ appdir_path }}/cronjobs"
+    github_unit21_path: "{{ appdir_path }}/unit21-github"
+    github_bastion_path: "{{ github_unit21_path }}/bastion-cronjobs"
+#
+# Config Block
+  gather_facts: False
+  remote_user: "{{ user }}"
+  become: yes
+  become_method: sudo
+#
+## Run Tasks
+  tasks:
+    - name: Clone Bastion-Cronjobs Repo
+      become: no
+      git:
+        ssh_opts: "-F /home/ubuntu/.ssh/config"
+        clone: yes
+        repo: git@unit21.git:u21/bastion-cronjobs.git
+        version: master
+        accept_hostkey: yes
+        dest: "{{ github_bastion_path }}"
+        update: yes

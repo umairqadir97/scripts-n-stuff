@@ -1,5 +1,6 @@
 ---
-# Usage: ansible-playbook <path/filename> -k
+# Ansible playbook to perform post-spin build steps on bastion nodes
+# Usage: ansible-playbook -i inventory.yml bastion_install.yml
 # Runs against IPs/Hostnames in hosts file
 #
 - hosts: bastion
@@ -10,12 +11,16 @@
     psql_version: "12"
     snowsql_url: "https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/"
     snowsql_installer: "snowsql-1.2.9-linux_x86_64.bash"
+    appdir_path: "/opt/app"
+    cronjobs_path: "{{ appdir_path }}/cronjobs"
+    github_unit21_path: "{{ appdir_path }}/unit21-github"
+    github_bastion_path: "{{ github_unit21_path }}/bastion-cronjobs"
+    github_cronjobs_path: "{{ appdir_path }}/unit21-github/bastion-cronjobs/cronjobs"
 #
 # Config Block
   gather_facts: True
   remote_user: "{{ user }}"
   become: yes
-#  become_user: root
   become_method: sudo
 #
 ## Run Tasks
@@ -66,19 +71,10 @@
 
 #
 # Create Directories and Files
-    - name: Create app and cronjobs Directory
-      file:
-        path: /opt/app/cronjobs
-        state: directory
-        recurse: yes
-        owner: "{{ user }}"
-        group: admin
-        mode: 0777
-
     - name: Create Secrets Bash File
       template:
         src: "secrets.sh"
-        dest: /opt/app/cronjobs/secrets.sh
+        dest: "{{ appdir_path }}/secrets.sh"
         owner: "{{ user }}"
         group: admin
         mode: 0777
@@ -109,7 +105,7 @@
 
     - name: Create Unit21 GitHub Directory
       file:
-        path: /opt/app/unit21-github
+        path: "{{ github_unit21_path }}"
         state: directory
         owner: "{{ user }}"
         group: git
@@ -263,26 +259,19 @@
     - name: Clone Bastion-Cronjobs Repo
       become: no
       git:
-#        key_file: /home/ubuntu/.ssh/bastion_cronjobs.priv
         ssh_opts: "-F /home/ubuntu/.ssh/config"
         clone: yes
         repo: git@unit21.git:u21/bastion-cronjobs.git
         version: master
         accept_hostkey: yes
-        dest: /opt/app/unit21-github/bastion-cronjobs
+        dest: "{{ github_bastion_path }}"
         update: yes
 
-    - name: Grab Cronjobs
-      find:
-        paths: /opt/app/unit21-github/bastion_cronjobs/cronjobs
-      register: find
-
-    - name: Symlink Cronjobs
+    - name: Symlink Cronjobs Dir
       file:
-        src: "{{ item.path }}"
-        path: "/opt/app/cronjobs/{{ item.path | basename }}"
+        src: "{{github_cronjobs_path}}"
+        path: "{{ cronjobs_path}} "
         state: link
-      with_items: "{{ find.files }}"
 #
 # Check Services
     - debug:
@@ -292,10 +281,6 @@
     - debug:
         msg: Flower service is NOT running!
       when: ansible_facts.services['flower.service']['state'] != 'running'
-#
-# Set Up Github Repos and Actions
-#
-# Set Up Monitoring
 #
 # Set Handlers
   handlers:
