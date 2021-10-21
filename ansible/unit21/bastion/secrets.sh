@@ -1,9 +1,0 @@
-ENV={{ host_env }}
-INFLUX_TOKEN={{ influx_token }}
-INFLUX_BUCKET={{ influx_bucket }}
-PGSQL_URL=postgresql://@{{ pgsql_url }}:{{ pgsql_port }}/{{ pgsql_db }}
-PGSQL_PASS=$(aws rds generate-db-auth-token --hostname {{ pgsql_url }} --port 5432 --region us-west-2 --username app_monitoring)
-MSK_URL={{ msk_url }}
-CELERY_REDIS_HOST={{ celery_redis_host }}
-PATH_TO_REDIS_CLI={{ path_to_redis_cli }}
-ES_URL={{ es_url }}

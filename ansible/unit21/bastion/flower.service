@@ -1,9 +1,0 @@
-[Unit]
-Description=Flower Celery Service
-
-[Service]
-User=ubuntu
-WorkingDirectory=/home/ubuntu/celery-flower
-ExecStart=/home/ubuntu/.local/bin/celery flower --broker=redis://{{ celery_redis_host }}:6379/0 --port=5555 --max_tasks=100000
-Restart=on-failure
-Type=simple
