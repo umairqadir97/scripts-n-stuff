@@ -77,7 +77,7 @@ def get_users(IN, SESSION):
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Get info from opsworks', prog='aws_opsworks')
+    parser = argparse.ArgumentParser(description='Get user permissions for opsworks stacks', prog='aws_opsworks')
     parser.add_argument('-p', action='store', default='default', type=str, help='AWS CLI profile, default: default')
     parser.add_argument('-r', action='store', default='us-west-2', type=str, help='AWS CLI region to run commands in, default: us-west-2')
     parser.add_argument('-s', action='store', default='all', type=str, help='Stack name, must be correct and is case sensative. Use "list" to print stack names. default: all (outputs users for all stacks)')
