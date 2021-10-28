@@ -2,9 +2,23 @@
 
 import boto3, botocore.exceptions, sys
 
-def set_session(PROFILE, REGION='us-west-2'):
+import boto3, botocore
+
+def set_session(PROFILE='default', REGION='us-west-2'):
+    '''
+    Provide AWS SDK session block
+    set_session(PROFILE, REGION)
+    PROFILE = AWS CLI profile to use (from credentials file), default is "default"
+    REGION = AWS region to use, default is "us-west-2"
+    '''
     try:
         session = boto3.Session(profile_name=PROFILE, region_name=REGION)
+    except botocore.exceptions.ProfileNotFound as ERROR:
+        print(ERROR)
+        sys.exit(1)
+    except TypeError as ERROR:
+        print(ERROR)
+        sys.exit(1)
     except:
         print(sys.exc_info()[1])
         sys.exit(1)
@@ -223,7 +237,7 @@ class ec2(ec2_get_info):
         can use wildcards
         '''
         instance_info = ec2_get_info(self.session).instance_info_by_name(NAME)
-        if not instance_info[0]:
+        if not instance_info[0] or not instance_info[1]:
             return False, instance_info[1]
         response = []
         for ITEM in instance_info[1]:
@@ -233,7 +247,7 @@ class ec2(ec2_get_info):
 
     def ip(self, ID):
         '''
-        Return IP addresses of instance by Name tag
+        Return IP addresses of instance by ID
         ID = Instance ID
         '''
         instance_info = ec2_get_info(self.session).instance_info_by_id(ID)
@@ -245,9 +259,11 @@ class ec2(ec2_get_info):
                 if 'PrivateIpAddress' in INSTANCE:
                     ip = [INSTANCE['PrivateIpAddress']]
                 else:
-                    ip = []
+                    ip = ['NONE']
                 if 'PublicIpAddress' in INSTANCE:
                     ip.append(INSTANCE['PublicIpAddress'])
+                else:
+                    ip.append('NONE')
                 response.append(ip)
         return True, response
 
