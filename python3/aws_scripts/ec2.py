@@ -1,6 +1,7 @@
 # Run actions against an ec2 instance
 # Lucas Rountree 2021
 import sys
+sys.path.append('../custom_modules/aws_modules')
 import general_modules as mod
 
 # MFA_Profile = input('MFA Profile Name: ')
@@ -34,29 +35,34 @@ def get_id(IN):
             sys.exit(1)
     return response
 
-def get_state():
-    Instance_Identifier = input('Instance Name or IP: ')
+def get_state(IN = False):
+    if not IN:
+        Instance_Identifier = input('Instance Name or IP: ')
+    else:
+        Instance_Identifier = IN
     Instance_Id = get_id(Instance_Identifier)[1][0]
     try:
-        get_state = ec2.state(Instance_Id)
+        Instance_State = ec2.state(Instance_Id)
     except:
         print('Can not find state for instance ID: ', Instance_Id)
         print(sys.exc_info()[1])
         sys.exit(1)
-    if not get_state[0]:
-        print(get_state[1])
+    if not Instance_State[0]:
+        print(Instance_State[1])
         sys.exit(1)
-    return get_state
+    return Instance_State
 
-def start():
-    Instance_Identifier = input('Instance Name or IP: ')
+def start(IN = False):
+    if not IN:
+        Instance_Identifier = input('Instance Name or IP: ')
+    else:
+        Instance_Identifier = IN
     Instance_Id = get_id(Instance_Identifier)[1][0]
-    ec2_client = ses.client('ec2')
-    Instance_State = get_state()
+    Instance_State = get_state(Instance_Identifier)
     if Instance_State[1] == 'stopped':
         print('Starting instance: ', Instance_Id)
         try:
-            response = ec2_client.start_instances(InstanceIds=[Instance_Id])
+            response = ec2.start_instances(InstanceIds=[Instance_Id])
         except:
             print(sys.exc_info()[1])
             sys.exit(1)
