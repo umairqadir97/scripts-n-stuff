@@ -60,9 +60,9 @@ def start(IN = False):
     Instance_Id = get_id(Instance_Identifier)[1][0]
     Instance_State = get_state(Instance_Identifier)
     if Instance_State[1] == 'stopped':
-        print('Starting instance: ', Instance_Id)
+        print('Attempting to start instance: ', Instance_Id, '...')
         try:
-            response = ec2.start_instances(InstanceIds=[Instance_Id])
+            response = ec2_client.start_instances(InstanceIds=[Instance_Id])
         except:
             print(sys.exc_info()[1])
             sys.exit(1)
@@ -86,6 +86,7 @@ if __name__ == '__main__':
     else:
         ses = mod.set_session(args.p, args.r)
         ec2 = mod.ec2(ses)
+        ec2_client = ses.client('ec2')
         ec2_info = mod.ec2_get_info(ses)
     if args.c == 'list':
         list_instances()
@@ -101,4 +102,5 @@ else:
     AWS_Region = input('AWS Region: ')
     ses = mod.set_session(MFA_Profile, AWS_Region)
     ec2 = mod.ec2(ses)
+    ec2_client = ses.client('ec2')
     ec2_info = mod.ec2_get_info(ses)
