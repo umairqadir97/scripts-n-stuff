@@ -7,18 +7,9 @@
 # Import Common Modules
 import sys, os, boto3, botocore, yaml
 from subprocess import run
+import general_modules as mod
 
-# Function to set up boto3 session
-def set_session(ACCOUNT):
-    '''
-    ACCOUNT: AWS account profile name in credentials file
-    '''
-    try:
-        session = boto3.Session(profile_name=ACCOUNT)
-    except:
-        print(sys.exc_info()[1])
-        sys.exit(1)
-    return session
+set_session = mod.set_session
 
 # Function to grab MFA device ARN and generate creds
 def get_creds(TOKEN, USER, ACCOUNT, ROLE = False, SESSION = False):
@@ -132,21 +123,21 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Generate MFA credentials for AWS', prog='aws-mfa')
     parser.add_argument('-u', action='store', default=False, type=str, help='IAM username')
-    parser.add_argument('-a', action='store', default=False, type=str, help='AWS account name')
+    parser.add_argument('-p', action='store', default=False, type=str, help='AWS CLI profile name, from credentials file')
     parser.add_argument('-n', action='store', default='aws-mfa', type=str, help='Credential file profile name for mfa or cross account credentials')
     parser.add_argument('-x', action='store', default=False, type=str, help='IAM Role name to assume')
     parser.add_argument('-r', action='store', default='us-west-1', type=str, help='Default AWS region, default: us-west-1')
     parser.add_argument('-o', action='store', default='table', type=str, choices=['json', 'text', 'table'], help='AWS CLI output type')
     parser.add_argument('-t', action='store', default=False, type=str, help='MFA device token')
     args = parser.parse_args()
-    if args.u and (args.a is False or args.n is False or args.t is False):
-        parser.error('-u requires -a, -n, and -t')
-    if args.a and args.u and (args.n is False or args.t is False):
-        parser.error('-a with -u requires -n and -t')
-    if args.x and (args.a is False or args.n is False):
+    if args.u and (args.p is False or args.n is False or args.t is False):
+        parser.error('-u requires -p, -n, and -t')
+    if args.p and args.u and (args.n is False or args.t is False):
+        parser.error('-p with -u requires -n and -t')
+    if args.x and (args.p is False or args.n is False):
         parser.error('-x requires -n')
-    if args.t and (args.u is False or args.a is False or args.n is False):
-        parser.error('-t requires -u, -a, and -n')
+    if args.t and (args.u is False or args.p is False or args.n is False):
+        parser.error('-t requires -u, -p, and -n')
     if not args.u and not args.n:
         parser.error('You must supply valid options')
-    set_creds(args.u, args.t, args.a, args.n, args.x, args.r, args.o)
+    set_creds(args.u, args.t, args.p, args.n, args.x, args.r, args.o)
